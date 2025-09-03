@@ -1,0 +1,302 @@
+{
+  "BTC": {
+    "name": "Bitcoin",
+    "coin_id": "bitcoin",
+    "market_cap": 2217761144432,
+    "price": 111083
+  },
+  "ETH": {
+    "name": "Ethereum",
+    "coin_id": "ethereum",
+    "market_cap": 523982137722,
+    "price": 4326.9
+  },
+  "XRP": {
+    "name": "XRP",
+    "coin_id": "ripple",
+    "market_cap": 169450486656,
+    "price": 2.84
+  },
+  "USDT": {
+    "name": "Tether",
+    "coin_id": "tether",
+    "market_cap": 168040623632,
+    "price": 1.0
+  },
+  "BNB": {
+    "name": "BNB",
+    "coin_id": "binancecoin",
+    "market_cap": 118767854068,
+    "price": 852.5
+  },
+  "SOL": {
+    "name": "Solana",
+    "coin_id": "solana",
+    "market_cap": 114477078619,
+    "price": 211.08
+  },
+  "USDC": {
+    "name": "USDC",
+    "coin_id": "usd-coin",
+    "market_cap": 72025045229,
+    "price": 0.999702
+  },
+  "STETH": {
+    "name": "Lido Staked Ether",
+    "coin_id": "staked-ether",
+    "market_cap": 37597547163,
+    "price": 4319.32
+  },
+  "DOGE": {
+    "name": "Dogecoin",
+    "coin_id": "dogecoin",
+    "market_cap": 32577774215,
+    "price": 0.215533
+  },
+  "TRX": {
+    "name": "TRON",
+    "coin_id": "tron",
+    "market_cap": 32059653707,
+    "price": 0.338459
+  },
+  "ADA": {
+    "name": "Cardano",
+    "coin_id": "cardano",
+    "market_cap": 30621757907,
+    "price": 0.83678
+  },
+  "WSTETH": {
+    "name": "Wrapped stETH",
+    "coin_id": "wrapped-steth",
+    "market_cap": 16619552578,
+    "price": 5239.42
+  },
+  "LINK": {
+    "name": "Chainlink",
+    "coin_id": "chainlink",
+    "market_cap": 15899290524,
+    "price": 23.4
+  },
+  "WBETH": {
+    "name": "Wrapped Beacon ETH",
+    "coin_id": "wrapped-beacon-eth",
+    "market_cap": 14304970512,
+    "price": 4657.49
+  },
+  "WBTC": {
+    "name": "Wrapped Bitcoin",
+    "coin_id": "wrapped-bitcoin",
+    "market_cap": 14128355678,
+    "price": 110820
+  },
+  "USDE": {
+    "name": "Ethena USDe",
+    "coin_id": "ethena-usde",
+    "market_cap": 12457998869,
+    "price": 0.999668
+  },
+  "FIGR_HELOC": {
+    "name": "Figure Heloc",
+    "coin_id": "figure-heloc",
+    "market_cap": 12251686805,
+    "price": 1.006
+  },
+  "HYPE": {
+    "name": "Hyperliquid",
+    "coin_id": "hyperliquid",
+    "market_cap": 12229429887,
+    "price": 45.11
+  },
+  "SUI": {
+    "name": "Sui",
+    "coin_id": "sui",
+    "market_cap": 11910030557,
+    "price": 3.33
+  },
+  "BCH": {
+    "name": "Bitcoin Cash",
+    "coin_id": "bitcoin-cash",
+    "market_cap": 11687167142,
+    "price": 586.86
+  },
+  "WEETH": {
+    "name": "Wrapped eETH",
+    "coin_id": "wrapped-eeth",
+    "market_cap": 11686174962,
+    "price": 4639.53
+  },
+  "XLM": {
+    "name": "Stellar",
+    "coin_id": "stellar",
+    "market_cap": 11576892016,
+    "price": 0.364035
+  },
+  "AVAX": {
+    "name": "Avalanche",
+    "coin_id": "avalanche-2",
+    "market_cap": 10330253785,
+    "price": 24.44
+  },
+  "WETH": {
+    "name": "WETH",
+    "coin_id": "weth",
+    "market_cap": 9588440696,
+    "price": 4327.53
+  },
+  "HBAR": {
+    "name": "Hedera",
+    "coin_id": "hedera-hashgraph",
+    "market_cap": 9396785470,
+    "price": 0.220924
+  },
+  "CRO": {
+    "name": "Cronos",
+    "coin_id": "crypto-com-chain",
+    "market_cap": 8952865133,
+    "price": 0.265944
+  },
+  "LEO": {
+    "name": "LEO Token",
+    "coin_id": "leo-token",
+    "market_cap": 8813692838,
+    "price": 9.55
+  },
+  "LTC": {
+    "name": "Litecoin",
+    "coin_id": "litecoin",
+    "market_cap": 8507868950,
+    "price": 111.44
+  },
+  "TON": {
+    "name": "Toncoin",
+    "coin_id": "the-open-network",
+    "market_cap": 8148589440,
+    "price": 3.17
+  },
+  "USDS": {
+    "name": "USDS",
+    "coin_id": "usds",
+    "market_cap": 8125575383,
+    "price": 0.9994
+  },
+  "SHIB": {
+    "name": "Shiba Inu",
+    "coin_id": "shiba-inu",
+    "market_cap": 7324480427,
+    "price": 1.242e-05
+  },
+  "BSC-USD": {
+    "name": "Binance Bridged USDT (BNB Smart Chain)",
+    "coin_id": "binance-bridged-usdt-bnb-smart-chain",
+    "market_cap": 6778731343,
+    "price": 0.999078
+  },
+  "WLFI": {
+    "name": "World Liberty Financial",
+    "coin_id": "world-liberty-financial",
+    "market_cap": 6278334548,
+    "price": 0.227656
+  },
+  "CBBTC": {
+    "name": "Coinbase Wrapped BTC",
+    "coin_id": "coinbase-wrapped-btc",
+    "market_cap": 6190199441,
+    "price": 111113
+  },
+  "WBT": {
+    "name": "WhiteBIT Coin",
+    "coin_id": "whitebit",
+    "market_cap": 6166548135,
+    "price": 42.68
+  },
+  "BGB": {
+    "name": "Bitget Token",
+    "coin_id": "bitget-token",
+    "market_cap": 5917829633,
+    "price": 5.19
+  },
+  "DOT": {
+    "name": "Polkadot",
+    "coin_id": "polkadot",
+    "market_cap": 5823221050,
+    "price": 3.82
+  },
+  "UNI": {
+    "name": "Uniswap",
+    "coin_id": "uniswap",
+    "market_cap": 5758588054,
+    "price": 9.58
+  },
+  "SUSDE": {
+    "name": "Ethena Staked USDe",
+    "coin_id": "ethena-staked-usde",
+    "market_cap": 5644462749,
+    "price": 1.19
+  },
+  "XMR": {
+    "name": "Monero",
+    "coin_id": "monero",
+    "market_cap": 4924806292,
+    "price": 266.86
+  },
+  "AAVE": {
+    "name": "Aave",
+    "coin_id": "aave",
+    "market_cap": 4815663453,
+    "price": 316.09
+  },
+  "DAI": {
+    "name": "Dai",
+    "coin_id": "dai",
+    "market_cap": 4611399622,
+    "price": 0.999305
+  },
+  "ENA": {
+    "name": "Ethena",
+    "coin_id": "ethena",
+    "market_cap": 4559015307,
+    "price": 0.688475
+  },
+  "PEPE": {
+    "name": "Pepe",
+    "coin_id": "pepe",
+    "market_cap": 4135124803,
+    "price": 9.81e-06
+  },
+  "MNT": {
+    "name": "Mantle",
+    "coin_id": "mantle",
+    "market_cap": 3637635289,
+    "price": 1.12
+  },
+  "OKB": {
+    "name": "OKB",
+    "coin_id": "okb",
+    "market_cap": 3469797819,
+    "price": 165.23
+  },
+  "ETC": {
+    "name": "Ethereum Classic",
+    "coin_id": "ethereum-classic",
+    "market_cap": 3197140953,
+    "price": 20.8
+  },
+  "JITOSOL": {
+    "name": "Jito Staked SOL",
+    "coin_id": "jito-staked-sol",
+    "market_cap": 3139380564,
+    "price": 258.26
+  },
+  "TAO": {
+    "name": "Bittensor",
+    "coin_id": "bittensor",
+    "market_cap": 3109120774,
+    "price": 323.45
+  },
+  "NEAR": {
+    "name": "NEAR Protocol",
+    "coin_id": "near",
+    "market_cap": 3061326587,
+    "price": 2.45
+  }
+}

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perso-1903 Recall Trading Agent</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Perso-1903</h1>
+            <p>AI-Powered Recall Trading Agent</p>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>🚀 Agent Status</h2>
+                <div id="status" class="status info">
+                    Agent ready for testing...
+                </div>
+                <div class="grid">
+                    <div class="card">
+                        <h3>📊 Quick Actions</h3>
+                        <button class="button" onclick="testConnection()">Test Connection</button>
+                        <button class="button" onclick="getPortfolio()">Get Portfolio</button>
+                        <button class="button" onclick="getProfile()">Get Profile</button>
+                        <button class="button" onclick="getTradeHistory()">Trade History</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>⚙️ Environment</h3>
+                        <div class="input-group">
+                            <label>Environment:</label>
+                            <select id="environment">
+                                <option value="sandbox">Sandbox (Testing)</option>
+                                <option value="production">Production (Live)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>API Key:</label>
+                            <input type="text" id="apiKey" placeholder="Enter API key" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>📈 Trading Operations</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>💱 Execute Trade</h3>
+                        <div class="input-group">
+                            <label>From Token:</label>
+                            <select id="fromToken">
+                                <option value="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48">USDC</option>
+                                <option value="0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2">WETH</option>
+                                <option value="0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599">WBTC</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>To Token:</label>
+                            <select id="toToken">
+                                <option value="0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2">WETH</option>
+                                <option value="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48">USDC</option>
+                                <option value="0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599">WBTC</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Amount:</label>
+                            <input type="number" id="amount" placeholder="Enter amount" step="0.0001">
+                        </div>
+                        <div class="input-group">
+                            <label>Reason:</label>
+                            <input type="text" id="reason" placeholder="Trade reason" value="Perso-1903 test trade">
+                        </div>
+                        <button class="button" onclick="executeTrade()">Execute Trade</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>💰 Get Token Price</h3>
+                        <div class="input-group">
+                            <label>Token Address:</label>
+                            <input type="text" id="tokenAddress" placeholder="Enter token address">
+                        </div>
+                        <div class="input-group">
+                            <label>Chain:</label>
+                            <select id="chain">
+                                <option value="evm">EVM</option>
+                                <option value="svm">SVM</option>
+                            </select>
+                        </div>
+                        <button class="button" onclick="getTokenPrice()">Get Price</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>📋 Activity Log</h2>
+                <div id="log" class="log">Perso-1903 Agent initialized...\nReady for operations.</div>
+                <button class="button" onclick="clearLog()">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Use environment variables or prompt user
+        const config = {
+            sandbox: {
+                apiKey: '', // Will be loaded from environment or user input
+                baseUrl: 'https://api.sandbox.competitions.recall.network'
+            },
+            production: {
+                apiKey: '', // Will be loaded from environment or user input
+                baseUrl: 'https://api.competitions.recall.network'
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Prompt user for API keys if not available
+            const sandboxKey = prompt('Enter your Recall Sandbox API Key (or leave empty to skip):');
+            const productionKey = prompt('Enter your Recall Production API Key (or leave empty to skip):');
+            
+            if (sandboxKey) config.sandbox.apiKey = sandboxKey;
+            if (productionKey) config.production.apiKey = productionKey;
+            
+            updateApiKey();
+            log('Perso-1903 Agent Dashboard loaded successfully');
+            log('⚠️  Note: API keys are stored in memory only and not saved');
+        });
+
+        // Update API key based on environment
+        function updateApiKey() {
+            const env = document.getElementById('environment').value;
+            const apiKey = config[env].apiKey;
+            document.getElementById('apiKey').value = apiKey;
+        }
+
+        // Log function
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // Clear log
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+
+        // Update status
+        function updateStatus(message, type = 'info') {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+
+        // Get current environment config
+        function getCurrentConfig() {
+            const env = document.getElementById('environment').value;
+            return config[env];
+        }
+
+        // Test connection
+        async function testConnection() {
+            const config = getCurrentConfig();
+            updateStatus('Testing connection...', 'info');
+            log('Testing API connection...');
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/api/health`, {
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    updateStatus('Connection successful!', 'success');
+                    log('✅ API connection test successful');
+                } else {
+                    updateStatus('Connection failed!', 'error');
+                    log('❌ API connection test failed');
+                }
+            } catch (error) {
+                updateStatus('Connection error!', 'error');
+                log(`❌ Connection error: ${error.message}`);
+            }
+        }
+
+        // Get portfolio
+        async function getPortfolio() {
+            const config = getCurrentConfig();
+            updateStatus('Fetching portfolio...', 'info');
+            log('Fetching agent portfolio...');
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/api/agent/balances`, {
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('Portfolio fetched successfully!', 'success');
+                    log(`✅ Portfolio: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    updateStatus('Failed to fetch portfolio!', 'error');
+                    log('❌ Failed to fetch portfolio');
+                }
+            } catch (error) {
+                updateStatus('Portfolio fetch error!', 'error');
+                log(`❌ Portfolio error: ${error.message}`);
+            }
+        }
+
+        // Get profile
+        async function getProfile() {
+            const config = getCurrentConfig();
+            updateStatus('Fetching profile...', 'info');
+            log('Fetching agent profile...');
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/api/agent/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('Profile fetched successfully!', 'success');
+                    log(`✅ Profile: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    updateStatus('Failed to fetch profile!', 'error');
+                    log('❌ Failed to fetch profile');
+                }
+            } catch (error) {
+                updateStatus('Profile fetch error!', 'error');
+                log(`❌ Profile error: ${error.message}`);
+            }
+        }
+
+        // Get trade history
+        async function getTradeHistory() {
+            const config = getCurrentConfig();
+            updateStatus('Fetching trade history...', 'info');
+            log('Fetching trade history...');
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/api/agent/trades`, {
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('Trade history fetched successfully!', 'success');
+                    log(`✅ Trade History: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    updateStatus('Failed to fetch trade history!', 'error');
+                    log('❌ Failed to fetch trade history');
+                }
+            } catch (error) {
+                updateStatus('Trade history fetch error!', 'error');
+                log(`❌ Trade history error: ${error.message}`);
+            }
+        }
+
+        // Execute trade
+        async function executeTrade() {
+            const config = getCurrentConfig();
+            const fromToken = document.getElementById('fromToken').value;
+            const toToken = document.getElementById('toToken').value;
+            const amount = document.getElementById('amount').value;
+            const reason = document.getElementById('reason').value;
+            
+            if (!amount || amount <= 0) {
+                updateStatus('Please enter a valid amount!', 'error');
+                return;
+            }
+            
+            updateStatus('Executing trade...', 'info');
+            log(`Executing trade: ${amount} from ${fromToken} to ${toToken}`);
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/api/trade/execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fromToken: fromToken,
+                        toToken: toToken,
+                        amount: amount,
+                        reason: reason
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('Trade executed successfully!', 'success');
+                    log(`✅ Trade executed: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    const errorData = await response.json();
+                    updateStatus('Trade execution failed!', 'error');
+                    log(`❌ Trade failed: ${JSON.stringify(errorData, null, 2)}`);
+                }
+            } catch (error) {
+                updateStatus('Trade execution error!', 'error');
+                log(`❌ Trade error: ${error.message}`);
+            }
+        }
+
+        // Get token price
+        async function getTokenPrice() {
+            const config = getCurrentConfig();
+            const tokenAddress = document.getElementById('tokenAddress').value;
+            const chain = document.getElementById('chain').value;
+            
+            if (!tokenAddress) {
+                updateStatus('Please enter a token address!', 'error');
+                return;
+            }
+            
+            updateStatus('Fetching token price...', 'info');
+            log(`Fetching price for token: ${tokenAddress}`);
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/api/price?token=${tokenAddress}&chain=${chain}&specificChain=${chain === 'evm' ? 'eth' : 'svm'}`, {
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('Price fetched successfully!', 'success');
+                    log(`✅ Token price: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    const errorData = await response.json();
+                    updateStatus('Failed to fetch price!', 'error');
+                    log(`❌ Price fetch failed: ${JSON.stringify(errorData, null, 2)}`);
+                }
+            } catch (error) {
+                updateStatus('Price fetch error!', 'error');
+                log(`❌ Price error: ${error.message}`);
+            }
+        }
+
+        // Environment change handler
+        document.getElementById('environment').addEventListener('change', updateApiKey);
+    </script>
+</body>
+</html>
