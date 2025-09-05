@@ -5,14 +5,299 @@ import math
 import requests
 import schedule
 import openai
+import datetime
+import uuid
 from decimal import Decimal, ROUND_DOWN
 from dotenv import load_dotenv
 from typing import Dict, Any, List
+from pathlib import Path
 from risk_management import RiskManager
 from ai_guard import AIGuard
 from safety_guards import AIGuardHardened, ExecutionRateLimiter, pre_trade_check
 from order_guards import Order, Quote, OrderPolicy, ConsecutiveFailureBreaker, execute_with_guards
 from technical_analysis import TECHNICAL_ANALYZER
+
+# ====== ET TIME HELPERS ======
+try:
+    from zoneinfo import ZoneInfo  # Python 3.9+
+except ImportError:
+    from backports.zoneinfo import ZoneInfo  # Python 3.8 fallback
+
+ET_TZ = ZoneInfo("America/New_York")
+
+def now_et() -> datetime.datetime:
+    """Return current time in ET."""
+    return datetime.datetime.now(tz=ET_TZ)
+
+def et_day_key(dt: datetime.datetime | None = None) -> str:
+    """
+    Define the 'ET trading day' as 09:00 ET → 09:00 ET next day.
+    We shift by -9 hours to create a stable date key.
+    """
+    dt = dt or now_et()
+    pivot = dt - datetime.timedelta(hours=9)
+    return pivot.date().isoformat()
+
+def et_time_to_local_hhmm(et_hhmm: str) -> str:
+    """
+    Convert 'HH:MM' in ET to local 'HH:MM' for schedule.every().day.at().
+    """
+    hh, mm = map(int, et_hhmm.split(":"))
+    today_et = now_et().replace(hour=hh, minute=mm, second=0, microsecond=0)
+    local_dt = today_et.astimezone()  # system local TZ
+    return local_dt.strftime("%H:%M")
+
+# ====== COMPETITION RULES & TOKEN ELIGIBILITY HELPERS ======
+COMPETITION_ID = "79ce6a16-3f02-4b4b-ab02-40adf9e9387c"
+
+DEFAULT_CONSTRAINTS = {
+    "min_24h_vol_usd": 100_000.0,
+    "min_liquidity_usd": 100_000.0,
+    "min_fdv_usd": 100_000.0,
+    "min_trade_amount": 1e-6,   # token units
+    "max_trade_pct": 0.25,      # 25% of total portfolio value
+}
+
+# Simple in-memory cache to reduce rate hits
+_ELIG_CACHE = {"rules": None, "rules_ts": 0, "token": {}, "token_ts": {}}
+_ELIG_TTL = 60  # seconds
+
+def get_competition_constraints() -> dict:
+    """
+    Fetch competition constraints from Production rules endpoint.
+    Falls back to defaults if unavailable.
+    """
+    # Always use production credentials for official rules
+    api_key, base_url = resolve_api_credentials("production")
+    url = f"{base_url}/api/competitions/{COMPETITION_ID}/rules"
+    now = time.time()
+
+    if _ELIG_CACHE["rules"] and now - _ELIG_CACHE["rules_ts"] < _ELIG_TTL:
+        return _ELIG_CACHE["rules"]
+
+    try:
+        r = requests.get(url, headers={"Authorization": f"Bearer {api_key}"}, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        tc = (data.get("rules") or {}).get("tradingConstraints") or {}
+        constraints = {
+            "min_24h_vol_usd": float(tc.get("minimum24hVolumeUsd", DEFAULT_CONSTRAINTS["min_24h_vol_usd"])),
+            "min_liquidity_usd": float(tc.get("minimumLiquidityUsd", DEFAULT_CONSTRAINTS["min_liquidity_usd"])),
+            "min_fdv_usd": float(tc.get("minimumFdvUsd", DEFAULT_CONSTRAINTS["min_fdv_usd"])),
+            "min_trade_amount": float(DEFAULT_CONSTRAINTS["min_trade_amount"]),  # explicit in rules text
+            "max_trade_pct": float(DEFAULT_CONSTRAINTS["max_trade_pct"]),       # explicit in rules text
+        }
+        _ELIG_CACHE["rules"] = constraints
+        _ELIG_CACHE["rules_ts"] = now
+        return constraints
+    except Exception as e:
+        print(f"Warning: failed to fetch competition rules, using defaults. ({e})")
+        return DEFAULT_CONSTRAINTS.copy()
+
+
+def _dexscreener_token_stats(token_address: str) -> dict:
+    """
+    Query DexScreener aggregated stats for the token address.
+    Return best (max) across pairs for liquidityUsd, fdvUsd, volumeUsd24h, priceUsd.
+    """
+    now = time.time()
+    if token_address in _ELIG_CACHE["token"] and now - _ELIG_CACHE["token_ts"].get(token_address, 0) < _ELIG_TTL:
+        return _ELIG_CACHE["token"][token_address]
+
+    url = f"https://api.dexscreener.com/latest/dex/tokens/{token_address}"
+    best = {"liquidityUsd": 0.0, "fdvUsd": 0.0, "volumeUsd24h": 0.0, "priceUsd": None}
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        for p in data.get("pairs", []):
+            liq = float(p.get("liquidity", {}).get("usd") or 0.0)
+            fdv = float(p.get("fdv") or 0.0)
+            vol = float(p.get("volume", {}).get("h24") or 0.0)
+            price = p.get("priceUsd")
+            if liq > best["liquidityUsd"]:
+                best["liquidityUsd"] = liq
+            if fdv > best["fdvUsd"]:
+                best["fdvUsd"] = fdv
+            if vol > best["volumeUsd24h"]:
+                best["volumeUsd24h"] = vol
+            if best["priceUsd"] is None and price:
+                try:
+                    best["priceUsd"] = float(price)
+                except:
+                    pass
+    except Exception as e:
+        print(f"Warning: DexScreener fetch failed for {token_address}: {e}")
+
+    _ELIG_CACHE["token"][token_address] = best
+    _ELIG_CACHE["token_ts"][token_address] = now
+    return best
+
+
+def get_portfolio_total_value_usd(api_key: str, base_url: str) -> float | None:
+    """
+    Try to read total USD value directly from /agent/portfolio.
+    If not available, return None (caller can decide to skip 25% cap check).
+    """
+    try:
+        r = requests.get(
+            f"{base_url}/agent/portfolio",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=10,
+        )
+        if r.ok:
+            j = r.json()
+            tv = j.get("totalValue")
+            if tv is not None:
+                return float(tv)
+    except Exception as e:
+        print(f"Info: portfolio total value unavailable ({e}); 25% cap pre-check may be skipped.")
+    return None
+
+
+def _infer_side(from_token: str, to_token: str, reference_stable: str) -> str:
+    """
+    Heuristic: if FROM is the stable (e.g., USDC), mark BUY (buying risk asset).
+    If TO is the stable, mark SELL (selling risk asset). Else default BUY.
+    """
+    if from_token.lower() == reference_stable.lower():
+        return "buy"
+    if to_token.lower() == reference_stable.lower():
+        return "sell"
+    return "buy"
+
+
+def pre_trade_check_or_raise(
+    *,
+    from_token: str,
+    to_token: str,
+    amount_float: float,
+    api_key: str,
+    base_url: str,
+    reference_stable_token: str = None,  # e.g., TOKEN_MAP.get("USDC")
+    trace_id: str | None = None,
+):
+    """
+    Client-side compliance guards before calling /api/trade/execute.
+      - token eligibility: 24h volume, liquidity, FDV ≥ thresholds
+      - min amount per trade
+      - no shorting
+      - max single trade ≤ 25% portfolio value (if portfolio total USD is available)
+    If eligibility data is unavailable (e.g., DexScreener down), skip local checks and rely on server enforcement.
+    """
+    _tid = trace_id or new_trace_id()
+    log_json("precheck_start",
+             trace_id=_tid,
+             from_token=from_token,
+             to_token=to_token,
+             side=(_infer_side(from_token, to_token, reference_stable_token) if reference_stable_token else "buy"),
+             amount=float(amount_float))
+    
+    constraints = get_competition_constraints()
+
+    # 1) Min trade amount
+    if amount_float < constraints["min_trade_amount"]:
+        raise ValueError(
+            f"Trade amount too small: {amount_float} < {constraints['min_trade_amount']} (token units)"
+        )
+
+    # 2) Determine side and risk token to validate
+    side = "buy"
+    if reference_stable_token:
+        side = _infer_side(from_token, to_token, reference_stable_token)
+    token_to_validate = to_token if side == "buy" else from_token
+
+    # 3) Token eligibility via DexScreener (graceful degrade)
+    stats = _dexscreener_token_stats(token_to_validate)
+    stats_unavailable = (
+        (stats.get("volumeUsd24h", 0.0) == 0.0) and
+        (stats.get("liquidityUsd", 0.0) == 0.0) and
+        (stats.get("fdvUsd", 0.0) == 0.0) and
+        (stats.get("priceUsd") in (None, 0.0))
+    )
+    if not stats_unavailable:
+        if stats["volumeUsd24h"] < constraints["min_24h_vol_usd"]:
+            raise ValueError(
+                f"Token 24h volume too low: {stats['volumeUsd24h']:.2f} < {constraints['min_24h_vol_usd']}"
+            )
+        if stats["liquidityUsd"] < constraints["min_liquidity_usd"]:
+            raise ValueError(
+                f"Token liquidity too low: {stats['liquidityUsd']:.2f} < {constraints['min_liquidity_usd']}"
+            )
+        if stats["fdvUsd"] < constraints["min_fdv_usd"]:
+            raise ValueError(
+                f"Token FDV too low: {stats['fdvUsd']:.2f} < {constraints['min_fdv_usd']}"
+            )
+    else:
+        print("Info: Token eligibility data unavailable; skipping local eligibility checks (server will enforce).")
+
+    # 4) No shorting (sell limited by balance)
+    if side == "sell":
+        try:
+            balance = recall_balance_lookup(api_key=api_key, base_url=base_url, token_address=from_token)
+            if balance is not None and float(balance) + 1e-18 < float(amount_float):
+                raise ValueError(f"Insufficient balance to sell {amount_float} (have {balance})")
+        except NameError:
+            pass  # helper not present; server will enforce
+
+    # 5) 25% cap (if we can fetch portfolio total USD)
+    total_value = get_portfolio_total_value_usd(api_key=api_key, base_url=base_url)
+    if total_value:
+        price_token = to_token if side == "buy" else from_token
+        px = _dexscreener_token_stats(price_token).get("priceUsd") or 0.0
+        if px > 0:
+            trade_value_usd = float(amount_float) * float(px)
+            cap = constraints["max_trade_pct"] * float(total_value)
+            if trade_value_usd > cap + 1e-9:
+                raise ValueError(
+                    f"Trade value ${trade_value_usd:.2f} exceeds 25% cap (${cap:.2f}) of portfolio."
+                )
+    # If total USD unknown or px==0, we skip; server still enforces caps.
+
+    log_json("precheck_rules_pass", trace_id=_tid)
+
+    # Conservative risk limits: cooldown, per-trade min/max, per-token cap, daily loss limit
+    try:
+        risk_guard_or_raise(
+            from_token=from_token,
+            to_token=to_token,
+            amount_float=float(amount_float),
+            api_key=api_key,
+            base_url=base_url,
+            side=side,
+            price_lookup_token=(to_token if side == "buy" else from_token),
+        )
+        log_json("risk_guard_pass", trace_id=_tid)
+    except ValueError as re_err:
+        log_json("risk_guard_reject", trace_id=_tid, error=str(re_err), level="ERROR")
+        raise
+
+    log_json("precheck_ok", trace_id=_tid)
+
+# ====== PRODUCTION SWITCH (ET-WINDOW AWARE) ======
+# Competition window in ET (strict as provided by rules)
+COMPETITION_START_ET = datetime.datetime(2025, 9, 8, 9, 0, tzinfo=ET_TZ)  # 09:00 ET Mon Sep 8, 2025
+COMPETITION_END_ET   = datetime.datetime(2025, 9, 12, 9, 0, tzinfo=ET_TZ) # 09:00 ET Fri Sep 12, 2025
+
+def use_production_now(dt: datetime.datetime | None = None) -> bool:
+    """Return True if current ET time is within the competition window (inclusive of start, exclusive of end)."""
+    dt = dt or now_et()
+    return COMPETITION_START_ET <= dt < COMPETITION_END_ET
+
+def resolve_env_for_now(dt: datetime.datetime | None = None) -> str:
+    """Return 'production' during the competition window, else 'sandbox'."""
+    return "production" if use_production_now(dt) else "sandbox"
+
+def resolve_api_credentials(env: str):
+    """
+    Map env -> (api_key, base_url)
+    Expects the globals:
+        RECALL_KEY_SANDBOX, RECALL_KEY_PRODUCTION
+        SANDBOX_API, PRODUCTION_API
+    """
+    if env == "production":
+        return RECALL_KEY_PRODUCTION, PRODUCTION_API
+    return RECALL_KEY_SANDBOX, SANDBOX_API
 
 # Load environment variables from .env file
 load_dotenv()
@@ -133,6 +418,9 @@ TOKEN_MAP = {
     "WETH_LINEA": "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",  # Linea WETH
 }
 
+# Address to symbol mapping for balance lookups
+ADDRESS_TO_SYMBOL = {addr.lower(): sym for sym, addr in TOKEN_MAP.items()}
+
 DECIMALS = {
     # Major tokens - competition ready
     "USDC": 6, "USDT": 6, "WETH": 18, "WBTC": 8, "BTC": 8, "ETH": 18, "SOL": 9,
@@ -148,6 +436,319 @@ DECIMALS = {
     # Linea tokens
     "ETH_LINEA": 18, "USDC_LINEA": 6, "USDT_LINEA": 6, "WETH_LINEA": 18
 }
+
+# ===== Symbol aliasing (normalize symbols to canonical names) =====
+SYMBOL_ALIAS: dict[str, str] = {
+    # Map common "marketing" symbols to canonical wrapped symbols
+    "BTC": "WBTC",
+    "ETH": "WETH",
+    # Idempotent mappings for known canonical symbols
+    "WBTC": "WBTC",
+    "WETH": "WETH",
+    # Stable stays the same
+    "USDC": "USDC",
+}
+
+def canonical_symbol(sym: str) -> str:
+    if not sym:
+        return ""
+    s = str(sym).upper().strip()
+    return SYMBOL_ALIAS.get(s, s)
+
+def canonicalize_numeric_map(d: dict[str, float] | None) -> dict[str, float]:
+    """
+    Return a new dict with keys mapped via canonical_symbol and values aggregated.
+    Safely handles None.
+    """
+    if not d:
+        return {}
+    out: dict[str, float] = {}
+    for k, v in d.items():
+        ck = canonical_symbol(k)
+        out[ck] = out.get(ck, 0.0) + float(v)
+    return out
+
+# ====== RISK GUARDS (conservative, competition-compliant) ======
+import datetime as dt
+try:
+    from zoneinfo import ZoneInfo  # Python 3.9+
+except Exception:
+    ZoneInfo = None
+import json
+
+RISK_CFG = {
+    "trade_min_usd": 50.0,          # per-trade minimum USD size
+    "per_trade_cap_pct": 0.10,      # per-trade cap as % of equity (stricter than 25% rule)
+    "per_token_position_cap_pct": 0.50,  # max exposure per token as % of equity
+    "daily_loss_limit_pct": 0.15,   # stop trading if equity ≤ 85% of start-of-day equity
+    "cooldown_seconds": 300,        # min seconds between trades for the same token
+}
+
+def _risk_state_path() -> str:
+    return "risk_state.json"
+
+def _load_risk_state() -> dict:
+    try:
+        with open(_risk_state_path(), "r") as f:
+            return json.load(f)
+    except Exception:
+        return {"day": None, "start_equity": None, "last_trade_ts": {}}
+
+def _save_risk_state(state: dict) -> None:
+    try:
+        with open(_risk_state_path(), "w") as f:
+            json.dump(state, f)
+    except Exception as e:
+        print(f"Warning: could not persist risk state: {e}")
+
+def _current_et_day_str() -> str:
+    try:
+        tz = ZoneInfo("America/New_York") if ZoneInfo else None
+    except Exception:
+        tz = None
+    now = dt.datetime.now(tz or dt.timezone.utc)
+    return now.strftime("%Y-%m-%d")
+
+def _maybe_roll_risk_day(state: dict, equity_now: float | None) -> None:
+    cur = _current_et_day_str()
+    if state.get("day") != cur:
+        state["day"] = cur
+        state["start_equity"] = float(equity_now) if equity_now is not None else None
+        state["last_trade_ts"] = {}
+        _save_risk_state(state)
+
+def risk_guard_or_raise(
+    *,
+    from_token: str,
+    to_token: str,
+    amount_float: float,
+    api_key: str,
+    base_url: str,
+    side: str,                  # "buy" or "sell"
+    price_lookup_token: str,    # token used for USD sizing (to_token if buy, from_token if sell)
+) -> None:
+    """
+    Conservative client-side risk limits:
+      - Per-trade USD min and max (≤ equity * per_trade_cap_pct)
+      - Per-token exposure cap (≤ equity * per_token_position_cap_pct)
+      - Daily loss limit vs start-of-day equity (ET)
+      - Per-token cooldown
+    Raise ValueError on violation. Gracefully degrades if some data unavailable.
+    """
+    # Load state, roll ET day, enforce daily loss limit
+    state = _load_risk_state()
+    equity = get_portfolio_total_value_usd(api_key, base_url)
+    if equity is not None:
+        _maybe_roll_risk_day(state, equity)
+        start = state.get("start_equity")
+        if start:
+            if float(equity) <= (1.0 - RISK_CFG["daily_loss_limit_pct"]) * float(start):
+                pct = RISK_CFG["daily_loss_limit_pct"] * 100.0
+                raise ValueError(
+                    f"Daily loss limit reached: equity ${equity:.2f} ≤ {100-pct:.1f}% of ${float(start):.2f}."
+                )
+
+    # Cooldown per token
+    now_ts = time.time()
+    token_key = price_lookup_token.lower()
+    last_ts = (state.get("last_trade_ts") or {}).get(token_key)
+    if last_ts and now_ts - float(last_ts) < RISK_CFG["cooldown_seconds"]:
+        remain = int(RISK_CFG["cooldown_seconds"] - (now_ts - float(last_ts)))
+        raise ValueError(f"Cooldown active for token; wait {remain}s before next trade.")
+
+    # Estimate USD trade size via DexScreener
+    px = _dexscreener_token_stats(price_lookup_token).get("priceUsd") or 0.0
+    if px > 0:
+        tv = float(amount_float) * float(px)
+
+        # Per-trade minimum USD
+        if tv < RISK_CFG["trade_min_usd"]:
+            raise ValueError(f"Trade size ${tv:.2f} below min ${RISK_CFG['trade_min_usd']:.2f}.")
+
+        # Per-trade USD cap (stricter than 25% competition rule)
+        if equity:
+            cap_usd = float(equity) * float(RISK_CFG["per_trade_cap_pct"])
+            if tv > cap_usd + 1e-9:
+                raise ValueError(
+                    f"Trade size ${tv:.2f} exceeds per-trade cap ${cap_usd:.2f} "
+                    f"({RISK_CFG['per_trade_cap_pct']*100:.0f}% of equity)."
+                )
+
+        # Per-token position cap
+        if equity:
+            holdings = fetch_holdings(api_key, base_url)  # canonical symbols
+            sym = ADDRESS_TO_SYMBOL.get(price_lookup_token.lower())
+            cur_amt = float(holdings.get(sym, 0.0)) if sym else 0.0
+            cur_val = cur_amt * float(px)
+            new_val = cur_val + tv if side == "buy" else max(0.0, cur_val - tv)
+            if new_val > float(equity) * float(RISK_CFG["per_token_position_cap_pct"]):
+                raise ValueError(
+                    f"Per-token position cap exceeded for {sym or price_lookup_token}: "
+                    f"${new_val:.2f} > {RISK_CFG['per_token_position_cap_pct']*100:.0f}% of equity."
+                )
+
+def risk_note_trade_success(price_lookup_token: str) -> None:
+    """Record cooldown timestamp after a successful trade."""
+    try:
+        state = _load_risk_state()
+        token_key = price_lookup_token.lower()
+        state.setdefault("last_trade_ts", {})[token_key] = time.time()
+        _save_risk_state(state)
+    except Exception as e:
+        print(f"Info: could not update cooldown state: {e}")
+
+def _maintenance_amount_for(symbol: str, target_min_usd: float) -> float:
+    """Return an amount (human units) that is >= target_min_usd at current price."""
+    addr = TOKEN_MAP.get(symbol, "")
+    px = 0.0
+    try:
+        if addr:
+            px = float((_dexscreener_token_stats(addr) or {}).get("priceUsd") or 0.0)
+    except Exception:
+        pass
+    if px <= 0.0:
+        try:
+            p = fetch_prices([symbol]).get(symbol, 0.0)
+            px = float(p or 0.0)
+        except Exception:
+            pass
+    if px <= 0.0:
+        # Fallback guesses to avoid zero-division
+        px = 2000.0 if symbol.upper() in ("WETH","ETH") else 50000.0 if symbol.upper() in ("WBTC","BTC") else 1.0
+    amt = max(target_min_usd / px, MIN_TRADE_AMOUNT)
+    return float(amt)
+
+# ===== Structured logging (JSONL) =====
+LOG_DIR = os.getenv("AGENT_LOG_DIR", "logs")
+LOG_FILE = os.getenv("AGENT_LOG_FILE", "agent.jsonl")
+
+def _ensure_log_dir() -> None:
+    try:
+        Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        print(f"Warning: could not create log dir {LOG_DIR}: {e}")
+
+def new_trace_id() -> str:
+    return str(uuid.uuid4())
+
+def log_json(event: str, **fields) -> None:
+    """
+    Append one JSON record per line to logs/agent.jsonl
+    Fields:
+      - ts_utc: ISO time in UTC
+      - ts_et: ISO time in America/New_York (if available)
+      - level: INFO/ERROR/WARN
+      - event: short event name
+      - all extra kwargs are included as-is (must be JSON-serializable)
+    """
+    _ensure_log_dir()
+    try:
+        ts_utc = dt.datetime.now(dt.timezone.utc).isoformat()
+        try:
+            tz = ZoneInfo("America/New_York") if 'ZoneInfo' in globals() and ZoneInfo else None
+        except Exception:
+            tz = None
+        ts_et = dt.datetime.now(tz).isoformat() if tz else None
+        rec = {
+            "ts_utc": ts_utc,
+            "ts_et": ts_et,
+            "level": fields.pop("level", "INFO"),
+            "event": event,
+        }
+        rec.update(fields)
+        with open(Path(LOG_DIR) / LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, default=str) + "\n")
+    except Exception as e:
+        # Never raise from logger
+        print(f"Log error: {e}")
+
+def health_check(verbose: bool = True) -> bool:
+    """
+    Live, read-only health probe:
+      - Recall API /api/health reachable
+      - Balances endpoint returns data
+      - (Optional) Competition rules reachable (production)
+      - DexScreener reachable for at least one known token
+      - Can write to risk_state.json and log directory
+    """
+    ok = True
+    checks = []
+    try:
+        env = resolve_env_for_now()
+        api_key, base_url = resolve_api_credentials(env)
+
+        # 1) API health
+        try:
+            r = requests.get(f"{base_url}/api/health",
+                             headers={"Authorization": f"Bearer {api_key}",
+                                      "Content-Type": "application/json"},
+                             timeout=10)
+            api_ok = (r.status_code == 200)
+        except Exception as e:
+            api_ok = False
+            checks.append({"check": "api_health", "ok": False, "error": str(e)})
+        else:
+            checks.append({"check": "api_health", "ok": api_ok})
+
+        ok &= api_ok
+
+        # 2) Balances
+        try:
+            bals = fetch_holdings(api_key, base_url)
+            bal_ok = isinstance(bals, dict)
+        except Exception as e:
+            bal_ok = False
+            checks.append({"check": "balances", "ok": False, "error": str(e)})
+        else:
+            checks.append({"check": "balances", "ok": bal_ok})
+        ok &= bal_ok
+
+        # 3) Rules (production only; ignore failure if not available)
+        try:
+            rules = get_competition_constraints()
+            rules_ok = bool(rules)
+        except Exception as e:
+            rules_ok = False
+            checks.append({"check": "rules", "ok": False, "error": str(e)})
+        else:
+            checks.append({"check": "rules", "ok": rules_ok})
+        ok &= rules_ok
+
+        # 4) DexScreener for WETH (or first available known token)
+        try:
+            weth_addr = TOKEN_MAP.get("WETH") or next(iter(TOKEN_MAP.values()))
+            ds = _dexscreener_token_stats(weth_addr)
+            ds_ok = isinstance(ds, dict)
+        except Exception as e:
+            ds_ok = False
+            checks.append({"check": "dexscreener", "ok": False, "error": str(e)})
+        else:
+            checks.append({"check": "dexscreener", "ok": ds_ok})
+        ok &= ds_ok
+
+        # 5) Filesystem: risk_state.json + log dir
+        fs_ok = True
+        try:
+            _save_risk_state(_load_risk_state())
+            _ensure_log_dir()
+            with open(Path(LOG_DIR) / LOG_FILE, "a", encoding="utf-8") as f:
+                f.write("")
+        except Exception as e:
+            fs_ok = False
+            checks.append({"check": "filesystem", "ok": False, "error": str(e)})
+        else:
+            checks.append({"check": "filesystem", "ok": True})
+        ok &= fs_ok
+
+        log_json("health_report", env=env, ok=ok, checks=checks)
+        if verbose:
+            print(("HEALTH_OK" if ok else "HEALTH_FAIL"), checks)
+        return ok
+    except Exception as e:
+        log_json("health_report", ok=False, error=str(e), level="ERROR")
+        if verbose:
+            print("HEALTH_FAIL", {"error": str(e)})
+        return False
 
 COINGECKO_IDS = {
     # Major tokens - competition ready
@@ -170,16 +771,36 @@ COINGECKO_IDS = {
 }
 
 DRIFT_THRESHOLD = 0.02    # rebalance if > 2% off target
-REB_TIME = "09:00"       # local server time
 
 # Competition rules constants
 MIN_TRADE_AMOUNT = 0.000001  # Minimum trade amount (competition rule)
 MAX_SINGLE_TRADE_PCT = 0.25  # Maximum 25% of portfolio per trade (competition rule)
 MIN_TRADES_PER_DAY = None     # Minimum trades per day (competition rule: null - not required)
 
-# Daily trade tracking
+# ====== DAILY COUNTER STATE (ET-ALIGNED) ======
 DAILY_TRADE_COUNT = 0
-LAST_TRADE_DATE = None
+LAST_TRADE_ET_DAY = None  # stores et_day_key() string
+
+def reset_daily_trade_count():
+    """Reset daily trade counter at 09:00 ET."""
+    global DAILY_TRADE_COUNT, LAST_TRADE_ET_DAY
+    DAILY_TRADE_COUNT = 0
+    LAST_TRADE_ET_DAY = et_day_key()
+    print(f"📅 [ET reset @09:00] New ET day={LAST_TRADE_ET_DAY} → trade count reset to 0")
+
+def update_daily_trade_count():
+    """
+    Increment daily counter; auto-resync if ET day changed unexpectedly.
+    Call this after each successful trade execution.
+    """
+    global DAILY_TRADE_COUNT, LAST_TRADE_ET_DAY
+    today_key = et_day_key()
+    if LAST_TRADE_ET_DAY != today_key:
+        DAILY_TRADE_COUNT = 0
+        LAST_TRADE_ET_DAY = today_key
+        print(f"📅 [auto-sync] ET day switched → reset counter (day={today_key})")
+    DAILY_TRADE_COUNT += 1
+    print(f"🧮 Trades today (ET): {DAILY_TRADE_COUNT}")
 
 # ------------------------------------------------------------
 # Dynamic Portfolio Strategy (Competition Ready)
@@ -380,28 +1001,27 @@ def fetch_prices(symbols: list[str]) -> dict[str, float]:
         return {}
 
 def fetch_holdings(api_key: str, base_url: str) -> dict[str, float]:
-    """Return whole-token balances from Recall's API"""
+    """
+    Returns balances keyed by SYMBOL in human units.
+    GET {base_url}/api/agent/balances is the single source of truth.
+    """
     try:
-        r = requests.get(
-            f"{base_url}/api/agent/balances",
-            headers={"Authorization": f"Bearer {api_key}"},
-            timeout=10,
-        )
+        r = requests.get(f"{base_url}/api/agent/balances",
+                         headers={"Authorization": f"Bearer {api_key}",
+                                  "Content-Type": "application/json"},
+                         timeout=20)
         r.raise_for_status()
         data = r.json()
-        
-        # Convert to symbol-based format, aggregate across chains
-        holdings = {}
-        for balance in data.get("balances", []):
-            symbol = balance.get("symbol", "")
-            amount = balance.get("amount", 0)
-            if symbol and amount > 0:
-                # Convert to human-readable units
-                decimals = DECIMALS.get(symbol, 18)
-                human_amount = amount / (10 ** decimals)
-                holdings[symbol] = holdings.get(symbol, 0) + human_amount
-        
-        return holdings
+        out: dict[str, float] = {}
+        for bal in data.get("balances", []):
+            symbol = canonical_symbol(bal.get("symbol"))
+            amount = bal.get("amount", 0)
+            if not symbol:
+                continue
+            # If the API returns base units, uncomment the next line:
+            # amount = float(amount) / (10 ** DECIMALS.get(symbol, 18))
+            out[symbol] = float(amount)
+        return out
     except Exception as e:
         print(f"Error fetching holdings: {e}")
         return {}
@@ -494,21 +1114,44 @@ def recall_get_best_quote(order: Order, api_key: str, base_url: str) -> Quote:
 
 def recall_send_order(order: Order, api_key: str, base_url: str) -> Dict[str, Any]:
     """Send order to Recall API"""
+    trace_id = new_trace_id()
+    log_json("trade_intent",
+             trace_id=trace_id,
+             function="recall_send_order",
+             symbol=order.base if order.side == "SELL" else order.quote,
+             side=order.side.lower(),
+             amount=float(order.amount))
+    
     try:
         # Convert Order to Recall format
         from_token = TOKEN_MAP[order.base if order.side == "SELL" else order.quote]
         to_token = TOKEN_MAP[order.quote if order.side == "SELL" else order.base]
         
-        # Convert amount to base units
-        decimals = DECIMALS.get(order.base if order.side == "SELL" else order.quote, 18)
-        amount_str = to_base_units(order.amount, decimals)
-        
         payload = {
             "fromToken": from_token,
             "toToken": to_token,
-            "amount": amount_str,
+            "amount": str(order.amount),
             "reason": "Perso-1903 guarded order execution",
         }
+        
+        # Pre-trade compliance check
+        try:
+            pre_trade_check_or_raise(
+                from_token=from_token,
+                to_token=to_token,
+                amount_float=float(order.amount),
+                api_key=api_key,
+                base_url=base_url,
+                reference_stable_token=TOKEN_MAP.get("USDC"),
+                trace_id=trace_id,
+            )
+        except Exception as e:
+            print(f"❌ Pre-trade check failed: {e}")
+            return {"success": False, "error": str(e)}
+        
+        log_json("trade_post",
+                 trace_id=trace_id,
+                 url=f"{base_url}/api/trade/execute")
         
         r = requests.post(
             f"{base_url}/api/trade/execute",
@@ -521,6 +1164,21 @@ def recall_send_order(order: Order, api_key: str, base_url: str) -> Dict[str, An
         )
         r.raise_for_status()
         result = r.json()
+        
+        log_json("trade_result",
+                 trace_id=trace_id,
+                 success=bool(result.get("success")),
+                 tx_id=(result.get("transaction", {}) or {}).get("id"),
+                 raw=result)
+        
+        # Record cooldown timestamp for risk management after successful trade
+        if result.get("success"):
+            try:
+                _side = "buy" if from_token.lower() == TOKEN_MAP.get("USDC","").lower() else "sell"
+                _px_token = (to_token if _side == "buy" else from_token)
+                risk_note_trade_success(price_lookup_token=_px_token)
+            except Exception as e:
+                print(f"Info: could not update cooldown state: {e}")
         
         return result
     except Exception as e:
@@ -546,13 +1204,16 @@ def recall_get_exec_price(tx_result: Dict[str, Any]) -> float:
         print(f"Error extracting exec price: {e}")
         return 0.0
 
-def recall_balance_lookup(token: str, api_key: str, base_url: str) -> float:
+def recall_balance_lookup(api_key: str, base_url: str, token_address: str) -> float:
     """Get token balance from Recall API"""
     try:
-        holdings = fetch_holdings(api_key, base_url)
-        return holdings.get(token, 0.0)
+        holdings = fetch_holdings(api_key, base_url)   # holdings keyed by symbol
+        sym = ADDRESS_TO_SYMBOL.get(token_address.lower())
+        if not sym:
+            return 0.0
+        return float(holdings.get(sym, 0.0))
     except Exception as e:
-        print(f"Error getting balance for {token}: {e}")
+        print(f"Error getting balance for {token_address}: {e}")
         return 0.0
 
 def recall_allowance_lookup(token: str, spender: str, api_key: str, base_url: str) -> float:
@@ -645,7 +1306,7 @@ def safe_rebalance_once(
                 send_order=lambda o: recall_send_order(o, api_key, base_url),
                 get_exec_price=recall_get_exec_price,
                 policy=ORDER_POLICY,
-                balance_lookup=lambda t: recall_balance_lookup(t, api_key, base_url),
+                balance_lookup=lambda t: recall_balance_lookup(api_key, base_url, t),
                 allowance_lookup=lambda t, s: recall_allowance_lookup(t, s, api_key, base_url),
                 reference_price_lookup=lambda b, q: recall_reference_price_lookup(b, q),
                 spender="Recall",  # Recall acts as spender
@@ -744,72 +1405,100 @@ def get_competition_status() -> dict:
         }
     }
 
-def update_daily_trade_count():
-    """Update daily trade count for competition compliance"""
-    global DAILY_TRADE_COUNT, LAST_TRADE_DATE
-    import datetime
-    
-    today = datetime.date.today()
-    
-    # Reset counter if new day
-    if LAST_TRADE_DATE != today:
-        DAILY_TRADE_COUNT = 0
-        LAST_TRADE_DATE = today
-        print(f"📅 New trading day: {today}, reset trade count to 0")
-    
-    # Increment trade count
-    DAILY_TRADE_COUNT += 1
-    print(f"📊 Daily trade count: {DAILY_TRADE_COUNT}/3 (minimum required)")
+# ====== MAINTENANCE TRADE FOR GUARANTEE (≥ 0.000001 token) ======
+def execute_small_maintenance_trade():
+    """Tiny trade to help satisfy the 3-trades-per-day rule (environment-aware)."""
+    env = resolve_env_for_now()
+    api_key, base_url = resolve_api_credentials(env)
 
-def check_minimum_daily_trades() -> bool:
-    """Check if minimum daily trades requirement is met (competition rule: null - not required)"""
-    global DAILY_TRADE_COUNT
-    
-    # Competition rules specify minTradesPerDay: null, so this is not required
-    if MIN_TRADES_PER_DAY is None:
-        print(f"ℹ️ Minimum daily trades not required (competition rule: null)")
-        return True
-    
-    if DAILY_TRADE_COUNT >= MIN_TRADES_PER_DAY:
-        print(f"✅ Minimum daily trades requirement met: {DAILY_TRADE_COUNT}/{MIN_TRADES_PER_DAY}")
-        return True
-    else:
-        print(f"⚠️ Minimum daily trades not met: {DAILY_TRADE_COUNT}/{MIN_TRADES_PER_DAY}")
-        return False
+    maintenance_symbols = ["WETH", "WBTC", "OP", "ARB"]
+    for sym in maintenance_symbols:
+        if sym in TOKEN_MAP:
+            # Size slightly above the configured USD minimum to avoid rejections
+            amount = _maintenance_amount_for(sym, RISK_CFG.get("trade_min_usd", 50.0) + 5.0)
+            try:
+                res = execute_trade(
+                    symbol=sym,
+                    side="buy",
+                    amount_float=amount,
+                    api_key=api_key,
+                    base_url=base_url,
+                )
+                if res and res.get("success"):
+                    update_daily_trade_count()
+                    print(f"✅ Maintenance trade executed: BUY {amount:.6f} {sym}")
+                    return
+                else:
+                    print(f"⚠️ Maintenance trade attempt for {sym} failed or was rejected. Trying next symbol…")
+            except Exception as e:
+                print(f"⚠️ Maintenance trade error for {sym}: {e}")
+    print("❌ All maintenance trade attempts failed.")
 
-def force_minimum_trades(holdings: dict, prices: dict, api_key: str, base_url: str) -> int:
+# ====== BURST SLOTS (TRY NORMAL STRATEGY, ELSE MAINTENANCE) ======
+def trade_burst():
     """
-    Force minimum trades if not met by end of day
-    Returns number of additional trades executed
+    ET-aligned burst: try normal strategy first (environment-aware),
+    then top-up with a maintenance trade if nothing executed yet today.
     """
-    global DAILY_TRADE_COUNT
-    
-    if DAILY_TRADE_COUNT >= MIN_TRADES_PER_DAY:
-        return 0
-    
-    additional_trades = MIN_TRADES_PER_DAY - DAILY_TRADE_COUNT
-    print(f"🚨 Forcing {additional_trades} additional trades to meet minimum requirement")
-    
-    executed = 0
-    for i in range(additional_trades):
-        # Simple USDC <-> WETH trades to meet requirement
-        if i % 2 == 0:
-            # Buy WETH with USDC
-            amount = 100.0  # $100 worth
-            result = execute_trade("WETH", "buy", amount, api_key, base_url)
-        else:
-            # Sell WETH for USDC
-            amount = 0.02  # Small amount
-            result = execute_trade("WETH", "sell", amount, api_key, base_url)
-        
-        if result.get("success"):
-            executed += 1
-            update_daily_trade_count()
-            print(f"✅ Forced trade {i+1} executed successfully")
-        else:
-            print(f"❌ Forced trade {i+1} failed: {result.get('error')}")
-    
-    return executed
+    env = resolve_env_for_now()
+    print(f"⏱️ Trade burst starting (ET slot)… env={env}")
+    try:
+        rebalance(environment=env)  # may produce 0..n trades
+    except Exception as e:
+        print(f"rebalance error in trade_burst: {e}")
+
+    # If no trade counted yet in this ET day, top it up:
+    if LAST_TRADE_ET_DAY != et_day_key() or DAILY_TRADE_COUNT == 0:
+        execute_small_maintenance_trade()
+
+# ====== PRE-ROLLOVER CHECK (08:58 ET) ======
+def ensure_min_trades_before_rollover():
+    """
+    08:58 ET — if DAILY_TRADE_COUNT < 3, execute the missing trades (environment-aware).
+    Leave a small delay between maintenance trades for rate-limits.
+    """
+    missing = max(0, 3 - DAILY_TRADE_COUNT)
+    if missing == 0:
+        print("✅ Daily minimum (3 trades) already met.")
+        return
+
+    print(f"⚠️ Daily trades below minimum. Missing: {missing}. Executing maintenance trades…")
+    maintenance_symbols = ["WETH", "WBTC", "OP", "ARB"]
+    for i in range(missing):
+        sym = maintenance_symbols[i % len(maintenance_symbols)]
+        execute_small_maintenance_trade()  # it now rotates and sizes internally
+        time.sleep(2)  # keep it short; cooldown is per-token and we rotate tokens
+
+# ====== ET-BASED SCHEDULING (REPLACE OLD schedule.every().day.at(REB_TIME)...) ======
+# Define ET times:
+ET_RESET  = "09:00"  # reset counter at start of ET day
+ET_SLOTS  = ["09:05", "15:05", "21:05"]  # three bursts to ensure ≥ 3/day
+ET_TOPUP  = "08:58"  # pre-rollover top-up
+
+# Convert ET times to local HH:MM for schedule:
+LOCAL_RESET = et_time_to_local_hhmm(ET_RESET)
+LOCAL_SLOTS = [et_time_to_local_hhmm(t) for t in ET_SLOTS]
+LOCAL_TOPUP = et_time_to_local_hhmm(ET_TOPUP)
+
+def install_et_schedule():
+    """
+    Install all ET-aligned schedules using local wall-clock mapping.
+    Call this once at startup.
+    """
+    # Reset at 09:00 ET
+    schedule.every().day.at(LOCAL_RESET).do(reset_daily_trade_count)
+
+    # Three intraday bursts
+    for hhmm in LOCAL_SLOTS:
+        schedule.every().day.at(hhmm).do(trade_burst)
+
+    # Pre-rollover top-up at 08:58 ET
+    schedule.every().day.at(LOCAL_TOPUP).do(ensure_min_trades_before_rollover)
+
+    print("⏲️ ET schedule installed:")
+    print(f"  • Reset (09:00 ET)   → local {LOCAL_RESET}")
+    print(f"  • Bursts (ET)        → local {', '.join(LOCAL_SLOTS)}")
+    print(f"  • Top-up (08:58 ET)  → local {LOCAL_TOPUP}")
 
 def validate_trade_amount(symbol: str, amount: float, side: str) -> bool:
     """
@@ -825,6 +1514,11 @@ def validate_trade_amount(symbol: str, amount: float, side: str) -> bool:
 
 def compute_orders(targets, prices, holdings):
     """Return a list of {'symbol','side','amount'} trades with risk management and competition rules."""
+    # Canonicalize keys to avoid BTC/ETH vs WBTC/WETH mismatches
+    targets  = canonicalize_numeric_map(targets)
+    prices   = canonicalize_numeric_map(prices)
+    holdings = canonicalize_numeric_map(holdings)
+    
     total_value = sum(holdings.get(s, 0) * prices.get(s, 0) for s in targets)
     if total_value == 0:
         raise ValueError("No balances found; fund your account first.")
@@ -860,8 +1554,8 @@ def compute_orders(targets, prices, holdings):
             
             if is_valid:
                 (overweight if side == "sell" else underweight).append(
-                    {"symbol": sym, "side": side, "amount": token_amt}
-                )
+                {"symbol": sym, "side": side, "amount": token_amt}
+            )
             else:
                 print(f"⚠️ Skipping {sym} {side} trade: {reason}")
 
@@ -870,6 +1564,14 @@ def compute_orders(targets, prices, holdings):
 
 def execute_trade(symbol, side, amount_float, api_key: str, base_url: str):
     """Execute a trade on Recall network with risk management, daily trade tracking, and transaction fee calculation."""
+    trace_id = new_trace_id()
+    log_json("trade_intent",
+             trace_id=trace_id,
+             function="execute_trade",
+             symbol=symbol,
+             side=side,
+             amount=float(amount_float))
+    
     from_token, to_token = (
         (TOKEN_MAP[symbol], TOKEN_MAP["USDC"]) if side == "sell"
         else (TOKEN_MAP["USDC"], TOKEN_MAP[symbol])
@@ -883,11 +1585,30 @@ def execute_trade(symbol, side, amount_float, api_key: str, base_url: str):
     payload = {
         "fromToken": from_token,
         "toToken": to_token,
-        "amount": to_base_units(amount_float, DECIMALS.get(symbol, 18)),
+        "amount": str(amount_float),
         "reason": f"Perso-1903 automatic portfolio rebalance (fee: ${transaction_fee:.3f})",
     }
     
+    # Pre-trade compliance check
     try:
+        pre_trade_check_or_raise(
+            from_token=from_token,
+            to_token=to_token,
+            amount_float=float(amount_float),
+            api_key=api_key,
+            base_url=base_url,
+            reference_stable_token=TOKEN_MAP.get("USDC"),
+            trace_id=trace_id,
+        )
+    except Exception as e:
+        print(f"❌ Pre-trade check failed: {e}")
+        return {"success": False, "error": str(e)}
+    
+    try:
+        log_json("trade_post",
+                 trace_id=trace_id,
+                 url=f"{base_url}/api/trade/execute")
+        
         r = requests.post(
             f"{base_url}/api/trade/execute",
             json=payload,
@@ -900,6 +1621,12 @@ def execute_trade(symbol, side, amount_float, api_key: str, base_url: str):
         r.raise_for_status()
         result = r.json()
         
+        log_json("trade_result",
+                 trace_id=trace_id,
+                 success=bool(result.get("success")),
+                 tx_id=(result.get("transaction", {}) or {}).get("id"),
+                 raw=result)
+        
         # Record position if trade is successful
         if result.get("success") and side == "buy":
             # Get current price for position tracking
@@ -910,6 +1637,14 @@ def execute_trade(symbol, side, amount_float, api_key: str, base_url: str):
         # Update daily trade count for competition compliance
         if result.get("success"):
             update_daily_trade_count()
+            
+            # Record cooldown timestamp for risk management
+            try:
+                _side = "buy" if from_token.lower() == TOKEN_MAP.get("USDC","").lower() else "sell"
+                _px_token = (to_token if _side == "buy" else from_token)
+                risk_note_trade_success(price_lookup_token=_px_token)
+            except Exception as e:
+                print(f"Info: could not update cooldown state: {e}")
         
         return result
     except Exception as e:
@@ -1232,8 +1967,11 @@ def ai_adjust_targets(targets: dict[str, float]) -> dict[str, float]:
 # ------------------------------------------------------------
 #  Daily job
 # ------------------------------------------------------------
-def rebalance(environment="sandbox"):
+def rebalance(environment=None):
     """Main rebalancing function with comprehensive safety guards and AI-powered analysis."""
+    if environment is None:
+        environment = resolve_env_for_now()
+    
     print(f"🔄 Starting Perso-1903 safe rebalance ({environment})")
     
     # Select environment
@@ -1348,13 +2086,6 @@ def rebalance(environment="sandbox"):
         print(f"📈 Active positions: {summary['total_positions']}")
         print(f"💰 Total position value: ${summary['total_value']:.2f}")
         
-        # Check minimum daily trades requirement
-        print("\n📊 Daily Trade Compliance:")
-        if not check_minimum_daily_trades():
-            print("🚨 Minimum daily trades not met, forcing additional trades...")
-            forced_trades = force_minimum_trades(holdings, prices, api_key, base_url)
-            print(f"✅ Forced {forced_trades} additional trades to meet minimum requirement")
-        
         print("🎯 Perso-1903 competition-ready rebalance complete.")
         
     except Exception as e:
@@ -1363,27 +2094,33 @@ def rebalance(environment="sandbox"):
 # ------------------------------------------------------------
 #  Scheduler
 # ------------------------------------------------------------
-schedule.every().day.at(REB_TIME).do(rebalance, "sandbox")
 
 if __name__ == "__main__":
-    print("🚀 Starting Perso-1903 Recall Trading Agent...")
-    print("📊 Agent: Perso-1903")
-    print("🎯 Strategy: AI-powered portfolio rebalancing with comprehensive safety guards")
-    print("⏰ Schedule: Daily at 09:00")
-    print("🛡️ Risk Management: Stop Loss 7%, Take Profit 10%, Trailing Stop 5%")
-    print("🤖 AI Features: Market Analysis, Risk Assessment, Trading Signals, Target Optimization")
-    print("📊 Technical Analysis: RSI, MACD, Bollinger Bands, Momentum Detection, Volatility Analysis")
-    print("🛡️ Safety Guards: Hardened AI Guard, Turnover Limiter, Rate Limiter, Volatility Breaker")
-    print("🛡️ Order Guards: Quote Validation, Slippage Protection, Order Splitting, Retry Logic")
-    print("🛡️ Competition Ready: Pre-trade checks, Market sanity, Execution cooldowns, Circuit breakers")
+    import argparse, sys
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--health", action="store_true", help="Run live health checks and exit")
+    args, _ = parser.parse_known_args()
+
+    if args.health:
+        ok = health_check(verbose=True)
+        sys.exit(0 if ok else 1)
+
+    print("🚀 Starting Perso-1903 Recall Trading Agent (ET-aligned).")
+    print(f"[SELF-CHECK] cooldown_seconds={RISK_CFG.get('cooldown_seconds')}, min_usd={RISK_CFG.get('trade_min_usd')}")
+    reset_daily_trade_count()
+    install_et_schedule()
     
     # Load existing positions if available
     RISK_MANAGER.load_positions()
     
-    # Run initial rebalance
-    rebalance("sandbox")
-    
-    # Start scheduler
+    # Environment-aware initial run (no sandbox hardcode)
+    try:
+        env = resolve_env_for_now()
+        rebalance(environment=env)
+    except Exception as e:
+        print(f"Initial rebalance error: {e}")
+
+    # Start scheduler loop
     while True:
         schedule.run_pending()
         time.sleep(60)
