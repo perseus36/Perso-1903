@@ -5,6 +5,8 @@ config.env
 .env.local
 .env.production
 .env.sandbox
+.envAdd-Content
+.env*
 
 # API keys and secrets
 secrets.json
