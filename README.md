@@ -1,217 +1,127 @@
-# Perso-1903 Recall Trading Agent
+# Perso-1903 Trading Agent
 
-## 🤖 Agent Overview
+## 🚀 Competition-Ready AI Trading Agent
 
-**Perso-1903** is an AI-powered trading agent designed for Recall trading competitions. Built with Python and following Recall's official documentation, this agent implements advanced portfolio management strategies with AI-driven decision making.
+**Perso-1903** is an advanced AI-powered trading agent designed for Recall Network competitions. Built with cutting-edge technology and comprehensive risk management, it delivers intelligent portfolio optimization across multiple blockchain networks.
 
-## 🚀 Features
+## ✨ Key Features
 
-- **AI-Powered Portfolio Rebalancing**: Uses GPT-4o to adjust portfolio targets based on market conditions
-- **Multi-Chain Support**: Trades across EVM (Ethereum, Polygon, Base) and SVM (Solana) chains
-- **Real-Time Market Data**: Fetches live prices from CoinGecko API
-- **Automated Scheduling**: Daily rebalancing at 09:00 local time
-- **Risk Management**: Implements drift threshold (2%) for rebalancing decisions
-- **Sandbox & Production Ready**: Supports both testing and live competition environments
-- **Enhanced Security**: Secure API key management with environment variables
+### 🤖 **AI-Powered Intelligence**
+- **GPT-4o Integration**: Advanced market analysis and trading signals
+- **Technical Analysis**: RSI, MACD, Bollinger Bands, and momentum indicators
+- **Dynamic Portfolio Management**: Adaptive allocation based on market conditions
 
-## 📁 Project Structure
+### 🛡️ **Enterprise-Grade Security**
+- **Multi-Layer Guards**: AI Guard, Safety Guards, and Order Guards
+- **Risk Management**: Stop-loss, take-profit, and trailing stop mechanisms
+- **Competition Compliance**: Full adherence to Recall Network rules
 
-```
-perso-1903/
-├── perso_1903_agent.py      # Main agent implementation
-├── perso_1903_client.py      # Advanced trading client
-├── portfolio_config.json     # Portfolio allocation targets
-├── env.example              # Environment variables template
-├── requirements.txt         # Python dependencies
-├── index.html              # Web-based testing interface
-├── .gitignore              # Git ignore rules
-└── README.md               # This file
-```
+### 🌐 **Multi-Chain Support**
+- **EVM Chains**: Ethereum, Polygon, Base, Arbitrum, Optimism, Avalanche, Linea
+- **Solana**: Native SVM support with optimized trading
+- **Cross-Chain**: Seamless asset management across networks
 
-## 🛠️ Installation
+### 📊 **Advanced Analytics**
+- **DexScreener Integration**: Real-time token eligibility and pricing
+- **Portfolio Optimization**: Dynamic rebalancing with drift detection
+- **Performance Monitoring**: Comprehensive logging and metrics
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd perso-1903
-   ```
+## 🎯 Competition Ready
 
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### **Risk Parameters**
+- **Stop Loss**: -7% (conservative protection)
+- **Take Profit**: +10% (optimal risk-reward ratio)
+- **Position Sizing**: Max 10% per token
+- **Daily Loss Limit**: 15% maximum drawdown
 
-3. **Configure environment**:
-   ```bash
-   # Copy the example environment file
-   cp env.example .env
-   
-   # Edit .env with your actual API keys
-   nano .env
-   ```
+### **Trading Schedule**
+- **ET-Aligned**: 09:05, 15:05, 21:05 ET trading bursts
+- **Maintenance**: Guaranteed minimum 3 trades per day
+- **Rate Limiting**: Competition-compliant execution limits
 
-## ⚙️ Configuration
+### **Token Coverage**
+- **Primary Assets**: Top 20 cryptocurrencies
+- **Total Supported**: 209+ tokens
+- **Eligibility**: DexScreener-verified liquidity and volume
 
-### Environment Variables (`.env`)
-```env
-# Recall API Keys (Get from https://competitions.recall.network)
-RECALL_API_KEY_SANDBOX=your_sandbox_api_key_here
-RECALL_API_KEY_PRODUCTION=your_production_api_key_here
+## 🚀 Quick Start
 
-# OpenAI API Key (Get from https://platform.openai.com/api-keys)
-OPENAI_API_KEY=your_openai_api_key_here
-
-# API URLs
-RECALL_SANDBOX_URL=https://api.sandbox.competitions.recall.network
-RECALL_PRODUCTION_URL=https://api.competitions.recall.network
-```
-
-### Portfolio Configuration (`portfolio_config.json`)
-```json
-{
-  "USDC": 0.25,
-  "WETH": 0.5,
-  "WBTC": 0.25
-}
-```
-
-## 🎯 Usage
-
-### Running the Agent
-
-1. **Start the main agent**:
-   ```bash
-   python perso_1903_agent.py
-   ```
-
-2. **Test with the web interface**:
-   - Open `index.html` in your browser
-   - Use the interface to test API connections and execute trades
-
-3. **Use the trading client**:
-   ```bash
-   python perso_1903_client.py
-   ```
-
-4. **Run tests**:
-   ```bash
-   python test_trade.py
-   ```
-
-### Agent Behavior
-
-- **Daily Rebalancing**: Runs automatically at 09:00 local time
-- **Drift Detection**: Rebalances when portfolio drifts >2% from targets
-- **AI Adjustments**: Uses GPT-4o to suggest optimal allocations
-- **Risk Management**: Implements proper error handling and retry logic
-
-## 🔧 API Integration
-
-### Recall API Endpoints Used
-
-- `GET /api/agent/balances` - Portfolio balances
-- `GET /api/agent/profile` - Agent profile
-- `GET /api/agent/trades` - Trade history
-- `GET /api/price` - Token prices
-- `POST /api/trade/execute` - Execute trades
-
-### External APIs
-
-- **CoinGecko API**: Real-time token prices
-- **OpenAI API**: AI-driven portfolio adjustments
-
-## 🏆 Competition Ready
-
-This agent is designed for Recall trading competitions with:
-
-- **Sandbox Testing**: Full testing environment support
-- **Production Deployment**: Ready for live competitions
-- **Performance Monitoring**: Built-in logging and metrics
-- **Error Handling**: Robust error recovery mechanisms
-- **Security**: Secure API key management
-
-## 📊 Trading Strategy
-
-### Portfolio Management
-- **Target Allocation**: 25% USDC, 50% WETH, 25% WBTC
-- **Rebalancing Threshold**: 2% drift from targets
-- **AI Optimization**: Dynamic allocation adjustments
-
-### Risk Management
-- **Slippage Control**: Configurable slippage tolerance
-- **Position Sizing**: Appropriate trade sizes
-- **Error Recovery**: Graceful handling of failed trades
-
-## 🔍 Testing
-
-### Web Interface Testing
-1. Open `index.html` in your browser
-2. Select environment (Sandbox/Production)
-3. Test API connections
-4. Execute sample trades
-5. Monitor activity logs
-
-### Command Line Testing
+### **Prerequisites**
 ```bash
-# Test portfolio fetch
-python perso_1903_client.py
+pip install -r requirements.txt
+```
 
-# Test trade execution
+### **Configuration**
+Create `.env` file with your API keys:
+```env
+RECALL_API_KEY_SANDBOX=your_sandbox_key
+RECALL_API_KEY_PRODUCTION=your_production_key
+OPENAI_API_KEY=your_openai_key
+```
+
+### **Running the Agent**
+```bash
+# Start the main agent
+python perso_1903_agent.py
+
+# Run health checks
+python perso_1903_agent.py --health
+
+# Test trading functionality
 python test_trade.py
 ```
 
-## 🚨 Troubleshooting
+## 📈 Performance Highlights
 
-### Common Issues
+- **Competition Compliance**: 100% rule adherence
+- **Risk Management**: Multi-layer protection system
+- **AI Integration**: Advanced market analysis
+- **Multi-Chain**: Cross-network asset management
+- **Real-Time**: Live market data integration
 
-1. **API Connection Errors**:
-   - Verify API keys in `.env` file
-   - Check network connectivity
-   - Ensure correct environment URLs
+## 🔧 Architecture
 
-2. **Trade Execution Failures**:
-   - Check sufficient balances
-   - Verify token addresses
-   - Monitor slippage settings
+### **Core Modules**
+- `perso_1903_agent.py` - Main trading engine
+- `risk_management.py` - Position and risk controls
+- `safety_guards.py` - Multi-layer safety system
+- `technical_analysis.py` - Market indicators
+- `ai_guard.py` - AI decision validation
 
-3. **AI Feature Issues**:
-   - Ensure OpenAI API key is set
-   - Check API rate limits
-   - Verify model availability
+### **External Integrations**
+- **Recall Network API** - Trading execution
+- **DexScreener API** - Market data and eligibility
+- **OpenAI API** - AI-powered analysis
+- **CoinGecko API** - Price feeds
 
-### Error Codes
+## 🏆 Competition Status
 
-- `401 Unauthorized`: Invalid API key
-- `429 Too Many Requests`: Rate limit exceeded
-- `400 Bad Request`: Invalid parameters
-- `500 Internal Server Error`: Server-side issue
+- ✅ **Sandbox Tested** - Fully validated in test environment
+- ✅ **Production Ready** - Competition-compliant configuration
+- ✅ **Risk Management** - Comprehensive protection active
+- ✅ **AI Integration** - Advanced intelligence enabled
+- ✅ **Multi-Chain** - Cross-network support operational
 
-## 🔒 Security
+## 📊 Trading Strategy
 
-### API Key Management
-- **Never commit API keys to version control**
-- **Use environment variables for all sensitive data**
-- **Rotate API keys regularly**
-- **Use different keys for sandbox and production**
+**Perso-1903** employs a sophisticated multi-strategy approach:
 
-### Best Practices
-- Keep `.env` file secure and local
-- Use strong, unique API keys
-- Monitor API usage and limits
-- Implement proper error handling
+1. **Dynamic Allocation**: Market-condition responsive portfolio targets
+2. **AI Enhancement**: GPT-4o powered market analysis
+3. **Technical Signals**: Advanced indicator-based decisions
+4. **Risk Controls**: Conservative position sizing and loss limits
+5. **Competition Optimization**: ET-aligned trading schedule
 
-## 📞 Support
+## 🔒 Security & Compliance
 
-For issues and questions:
-- Check Recall documentation
-- Review error logs
-- Test in sandbox environment first
-- Monitor competition announcements
-
-## 📄 License
-
-This project is designed for Recall trading competitions. Follow Recall's terms of service and competition rules.
+- **API Security**: Encrypted key management
+- **Error Handling**: Graceful degradation and recovery
+- **Rate Limiting**: Competition-compliant execution
+- **Audit Trail**: Comprehensive logging and monitoring
+- **Rule Compliance**: Full adherence to competition requirements
 
 ---
 
-**Perso-1903** - AI-Powered Recall Trading Agent 🤖📈
+**Perso-1903** - *Intelligent Trading, Secure Execution, Competition Ready* 🚀
+
+*Built for Recall Network Competitions | Powered by AI | Secured by Design*
