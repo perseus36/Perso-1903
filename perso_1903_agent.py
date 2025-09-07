@@ -47,6 +47,58 @@ def et_time_to_local_hhmm(et_hhmm: str) -> str:
     local_dt = today_et.astimezone()  # system local TZ
     return local_dt.strftime("%H:%M")
 
+def get_available_trading_tokens() -> list[str]:
+    """
+    Get list of available tokens for trading based on:
+    1. Top 50 tokens by market cap
+    2. DexScreener eligibility (volume, liquidity, FDV)
+    3. Competition compliance
+    """
+    try:
+        # Load top 50 tokens
+        with open("top_50_tokens.json", "r") as f:
+            top_tokens = json.load(f)
+        
+        available_tokens = []
+        
+        # Check each token for eligibility
+        for symbol, token_info in top_tokens.items():
+            # Skip if not in our TOKEN_MAP (no contract address)
+            if symbol not in TOKEN_MAP:
+                continue
+                
+            # Get token address for DexScreener check
+            token_address = TOKEN_MAP[symbol]
+            
+            # Check DexScreener eligibility
+            stats = _dexscreener_token_stats(token_address)
+            
+            # Apply competition constraints
+            constraints = get_competition_constraints()
+            
+            if (stats.get("volumeUsd24h", 0) >= constraints["min_24h_vol_usd"] and
+                stats.get("liquidityUsd", 0) >= constraints["min_liquidity_usd"] and
+                stats.get("fdvUsd", 0) >= constraints["min_fdv_usd"]):
+                
+                available_tokens.append(symbol)
+                print(f"✅ {symbol}: Eligible for trading")
+            else:
+                print(f"❌ {symbol}: Not eligible (vol: {stats.get('volumeUsd24h', 0):.0f}, liq: {stats.get('liquidityUsd', 0):.0f}, fdv: {stats.get('fdvUsd', 0):.0f})")
+        
+        # Always include core tokens even if not in top 50
+        core_tokens = ["USDC", "USDT", "WETH", "WBTC", "BTC", "ETH"]
+        for token in core_tokens:
+            if token not in available_tokens and token in TOKEN_MAP:
+                available_tokens.append(token)
+        
+        print(f"🎯 Total available tokens: {len(available_tokens)}")
+        return available_tokens
+        
+    except Exception as e:
+        print(f"⚠️ Error loading top tokens, using fallback: {e}")
+        # Fallback to core tokens
+        return ["USDC", "USDT", "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "AVAX", "DOGE", "DOT", "MATIC", "LINK", "UNI", "LTC", "BCH", "XLM", "ETC", "VET"]
+
 # ====== COMPETITION RULES & TOKEN ELIGIBILITY HELPERS ======
 COMPETITION_ID = "79ce6a16-3f02-4b4b-ab02-40adf9e9387c"
 
@@ -331,14 +383,14 @@ RISK_MANAGER = RiskManager(
 AI_GUARD = AIGuard(
     min_stable_pct=0.15,      # Minimum 15% USDC
     max_token_pct=0.45,       # Maximum 45% per token
-    allowed_tokens=["USDC", "USDT", "WETH", "WBTC", "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "AVAX", "DOGE", "DOT", "MATIC", "LINK", "UNI", "LTC", "BCH", "XLM", "ATOM", "ETC", "FIL", "VET", "ICP", "THETA", "FTT", "XMR", "EOS", "AAVE", "ALGO", "MKR", "KSM", "BTT", "TRX", "NEO", "CAKE", "CHZ", "HOT", "DASH", "WAVES", "ZEC", "MANA", "SAND", "ENJ", "GALA", "AXS", "ROSE", "FLOW", "ONE", "HBAR", "XEC", "XTZ", "RUNE", "IOTA", "NEXO", "COMP", "SNX", "YFI", "ZRX", "BAT", "OMG", "ZIL", "QTUM", "RVN", "ICX", "STORJ", "ANKR", "CRO", "BTTOLD", "HIVE", "DCR", "SC", "ZEN", "BTS", "STEEM", "WAXP", "DGB", "AR", "XEM", "IOST", "NANO", "ONT", "WOO", "SRM", "RAY", "SUSHI", "CRV", "1INCH", "KDA", "IOTX", "HNT", "DYDX", "CFX", "XDC", "REN", "RSR", "OCEAN", "ALPHA", "AUDIO", "INJ", "RLC", "SKL", "OGN", "ANKR", "CKB", "COTI", "CTSI", "DENT", "DUSK", "FET", "FLM", "FORTH", "FTM", "GRT", "HOT", "ICP", "IDEX", "IMX", "JASMY", "KAVA", "KEEP", "KLAY", "LDO", "LPT", "LRC", "MASK", "MATIC", "MINA", "MKR", "MLN", "MXC", "NMR", "NU", "OGN", "OM", "ONE", "ONG", "ONT", "ORN", "OXT", "PAXG", "PERP", "PHA", "POLS", "POND", "PUNDIX", "QNT", "RAD", "RARE", "RARI", "REN", "REP", "REQ", "RLC", "ROSE", "RSR", "RUNE", "RVN", "SAND", "SC", "SHIB", "SKL", "SLP", "SNX", "SOL", "SPELL", "SRM", "STEEM", "STORJ", "STPT", "STRAX", "SUPER", "SUSHI", "SWAP", "SXP", "SYS", "TFUEL", "THETA", "TKO", "TLM", "TRB", "TRX", "UMA", "UNI", "USDT", "VET", "WAVES", "WAXP", "WBTC", "WETH", "XDC", "XEM", "XLM", "XMR", "XRP", "XTZ", "YFI", "YGG", "ZEC", "ZEN", "ZIL", "ZRX", "USDbC", "OP", "ARB", "PENGU", "JUP", "HYPE", "RNDR"]
+    allowed_tokens=get_available_trading_tokens()  # Dynamic token list
 )
 
 # Initialize Hardened Safety Guards (competition ready)
 SAFETY_GUARD = AIGuardHardened(
     min_stable_pct=0.15,      # Minimum 15% USDC
     max_token_pct=0.45,       # Maximum 45% per token
-    allowed_tokens=["USDC", "USDT", "WETH", "WBTC", "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "AVAX", "DOGE", "DOT", "MATIC", "LINK", "UNI", "LTC", "BCH", "XLM", "ETC", "VET", "ICP", "THETA", "FTT", "XMR", "EOS", "AAVE", "ALGO", "MKR", "KSM", "BTT", "TRX", "NEO", "CAKE", "CHZ", "HOT", "DASH", "WAVES", "ZEC", "MANA", "SAND", "ENJ", "GALA", "AXS", "ROSE", "FLOW", "ONE", "HBAR", "XEC", "XTZ", "RUNE", "IOTA", "NEXO", "COMP", "SNX", "YFI", "ZRX", "BAT", "OMG", "ZIL", "QTUM", "RVN", "ICX", "STORJ", "ANKR", "CRO", "BTTOLD", "HIVE", "DCR", "SC", "ZEN", "BTS", "STEEM", "WAXP", "DGB", "AR", "XEM", "IOST", "NANO", "ONT", "WOO", "SRM", "RAY", "SUSHI", "CRV", "1INCH", "KDA", "IOTX", "HNT", "DYDX", "CFX", "XDC", "REN", "RSR", "OCEAN", "ALPHA", "AUDIO", "INJ", "RLC", "SKL", "OGN", "ANKR", "CKB", "COTI", "CTSI", "DENT", "DUSK", "FET", "FLM", "FORTH", "FTM", "GRT", "HOT", "ICP", "IDEX", "IMX", "JASMY", "KAVA", "KEEP", "KLAY", "LDO", "LPT", "LRC", "MASK", "MATIC", "MINA", "MKR", "MLN", "MXC", "NMR", "NU", "OGN", "OM", "ONE", "ONG", "ONT", "ORN", "OXT", "PAXG", "PERP", "PHA", "POLS", "POND", "PUNDIX", "QNT", "RAD", "RARE", "RARI", "REN", "REP", "REQ", "RLC", "ROSE", "RSR", "RUNE", "RVN", "SAND", "SC", "SHIB", "SKL", "SLP", "SNX", "SOL", "SPELL", "SRM", "STEEM", "STORJ", "STPT", "STRAX", "SUPER", "SUSHI", "SWAP", "SXP", "SYS", "TFUEL", "THETA", "TKO", "TLM", "TRB", "TRX", "UMA", "UNI", "USDT", "VET", "WAVES", "WAXP", "WBTC", "WETH", "XDC", "XEM", "XLM", "XMR", "XRP", "XTZ", "YFI", "YGG", "ZEC", "ZEN", "ZIL", "ZRX", "USDbC", "OP", "ARB", "PENGU", "JUP", "HYPE", "RNDR"],
+    allowed_tokens=get_available_trading_tokens(),  # Dynamic token list
     stable_symbol="USDC"
 )
 
@@ -1975,9 +2027,9 @@ def rebalance(environment=None):
         base_url = PRODUCTION_API
     
     try:
-        # Fetch market data first - Top 20 tokens only
-        top_20_tokens = ["USDC", "USDT", "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "AVAX", "DOGE", "DOT", "MATIC", "LINK", "UNI", "LTC", "BCH", "XLM", "ETC", "VET"]
-        prices = fetch_prices(top_20_tokens)
+        # Fetch market data first - Dynamic token selection
+        available_tokens = get_available_trading_tokens()
+        prices = fetch_prices(available_tokens)
         holdings = fetch_holdings(api_key, base_url)
         
         if not prices:
