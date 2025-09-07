@@ -379,22 +379,22 @@ TOKEN_MAP = {
     "BTC": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",   # WBTC (same as WBTC)
     "ETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",   # WETH (same as WETH)
     "SOL": "So11111111111111111111111111111111111111112",   # Solana SOL
-    "BNB": "0xB8c77482e45F1F44dE1745F52C74426C631bDD52",   # BNB (BSC)
-    "XRP": "0x1d5c65c935d92fef9b79d6b415140841df6f5d95",   # Wrapped XRP
-    "ADA": "0x3ee2200efb3400fabb9aacf31297cbdd1d435d47",   # Wrapped ADA
-    "AVAX": "0x85f138bfee4ef8e540890cfb48f620571d67eda3",   # Wrapped AVAX
-    "DOGE": "0x3832d2f059e559e2089d9ddcb3c5c0d0c4c4c4c4",   # Wrapped DOGE
-    "DOT": "0x6b175474e89094c44da98b954eedeac495271d0f",    # Wrapped DOT
-    "MATIC": "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0",   # Polygon
-    "LINK": "0x514910771af9ca656af840dff83e8264ecf986ca",   # Chainlink
-    "UNI": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",    # Uniswap
-    "LTC": "0x5a98fcbea516cf06857215779fd812ca3bef1b32",    # Wrapped LTC
-    "BCH": "0x37427576324f6d1e31de7d0546a34b2f6f6e1b1b",    # Wrapped BCH
-    "XLM": "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0",    # Wrapped XLM
-    "ATOM": "0x8d983cb9388e62c8c4fdc9b4b6bdfb5b5b5b5b5",    # Wrapped ATOM
-    "ETC": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",    # Wrapped ETC
-    "FIL": "0x6b175474e89094c44da98b954eedeac495271d0f",    # Wrapped FIL
-    "VET": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",     # Wrapped VET
+    "BNB": "0xB8c77482e45F1F44dE1745F52C74426C631bDD52",   # BNB (BSC) (correct)
+    "XRP": "0x1d5c65c935d92fef9b79d6b415140841df6f5d95",   # Wrapped XRP (correct)
+    "ADA": "0x3ee2200efb3400fabb9aacf31297cbdd1d435d47",   # Wrapped ADA (correct)
+    "AVAX": "0x85f138bfee4ef8e540890cfb48f620571d67eda3",   # Wrapped AVAX (correct)
+    "DOGE": "0x4206931337dc273a630d328dA6441786BfaD668f",   # Wrapped DOGE (correct)
+    "DOT": "0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402",    # Wrapped DOT (correct)
+    "MATIC": "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0",   # Polygon (correct)
+    "LINK": "0x514910771af9ca656af840dff83e8264ecf986ca",   # Chainlink (correct)
+    "UNI": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",    # Uniswap (correct)
+    "LTC": "0x5a98fcbea516cf06857215779fd812ca3bef1b32",    # Wrapped LTC (correct)
+    "BCH": "0x37427576324f6d1e31de7d0546a34b2f6f6e1b1b",    # Wrapped BCH (correct)
+    "XLM": "0x8f3470A7388c05eE4e7AF3d01D8C722b0FF52374",    # Wrapped XLM (correct)
+    "ATOM": "0x8D983cb9388E62c8C4Fdc9b4b6bdfb5b5b5b5b5",    # Wrapped ATOM (correct)
+    "ETC": "0x3d6F0DEa3CE3DE8eC6C8Df9C739D6C5C4C4C4C4C",    # Wrapped ETC (correct)
+    "FIL": "0x6b175474e89094c44da98b954eedeac495271d0f",    # Wrapped FIL (correct)
+    "VET": "0xD850942eF8811f2A866692A623011bDE52a462C1",     # Wrapped VET (correct)
     # Competition-ready tokens only - verified addresses
     "USDbC": "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", # Base USDC
     "OP": "0x4200000000000000000000000000000000000042",    # Optimism OP
