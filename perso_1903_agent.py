@@ -338,7 +338,7 @@ AI_GUARD = AIGuard(
 SAFETY_GUARD = AIGuardHardened(
     min_stable_pct=0.15,      # Minimum 15% USDC
     max_token_pct=0.45,       # Maximum 45% per token
-    allowed_tokens=["USDC", "USDT", "WETH", "WBTC", "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "AVAX", "DOGE", "DOT", "MATIC", "LINK", "UNI", "LTC", "BCH", "XLM", "ATOM", "ETC", "FIL", "VET", "ICP", "THETA", "FTT", "XMR", "EOS", "AAVE", "ALGO", "MKR", "KSM", "BTT", "TRX", "NEO", "CAKE", "CHZ", "HOT", "DASH", "WAVES", "ZEC", "MANA", "SAND", "ENJ", "GALA", "AXS", "ROSE", "FLOW", "ONE", "HBAR", "XEC", "XTZ", "RUNE", "IOTA", "NEXO", "COMP", "SNX", "YFI", "ZRX", "BAT", "OMG", "ZIL", "QTUM", "RVN", "ICX", "STORJ", "ANKR", "CRO", "BTTOLD", "HIVE", "DCR", "SC", "ZEN", "BTS", "STEEM", "WAXP", "DGB", "AR", "XEM", "IOST", "NANO", "ONT", "WOO", "SRM", "RAY", "SUSHI", "CRV", "1INCH", "KDA", "IOTX", "HNT", "DYDX", "CFX", "XDC", "REN", "RSR", "OCEAN", "ALPHA", "AUDIO", "INJ", "RLC", "SKL", "OGN", "ANKR", "CKB", "COTI", "CTSI", "DENT", "DUSK", "FET", "FLM", "FORTH", "FTM", "GRT", "HOT", "ICP", "IDEX", "IMX", "JASMY", "KAVA", "KEEP", "KLAY", "LDO", "LPT", "LRC", "MASK", "MATIC", "MINA", "MKR", "MLN", "MXC", "NMR", "NU", "OGN", "OM", "ONE", "ONG", "ONT", "ORN", "OXT", "PAXG", "PERP", "PHA", "POLS", "POND", "PUNDIX", "QNT", "RAD", "RARE", "RARI", "REN", "REP", "REQ", "RLC", "ROSE", "RSR", "RUNE", "RVN", "SAND", "SC", "SHIB", "SKL", "SLP", "SNX", "SOL", "SPELL", "SRM", "STEEM", "STORJ", "STPT", "STRAX", "SUPER", "SUSHI", "SWAP", "SXP", "SYS", "TFUEL", "THETA", "TKO", "TLM", "TRB", "TRX", "UMA", "UNI", "USDT", "VET", "WAVES", "WAXP", "WBTC", "WETH", "XDC", "XEM", "XLM", "XMR", "XRP", "XTZ", "YFI", "YGG", "ZEC", "ZEN", "ZIL", "ZRX", "USDbC", "OP", "ARB", "PENGU", "JUP", "HYPE", "RNDR"],
+    allowed_tokens=["USDC", "USDT", "WETH", "WBTC", "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "AVAX", "DOGE", "DOT", "MATIC", "LINK", "UNI", "LTC", "BCH", "XLM", "ETC", "VET", "ICP", "THETA", "FTT", "XMR", "EOS", "AAVE", "ALGO", "MKR", "KSM", "BTT", "TRX", "NEO", "CAKE", "CHZ", "HOT", "DASH", "WAVES", "ZEC", "MANA", "SAND", "ENJ", "GALA", "AXS", "ROSE", "FLOW", "ONE", "HBAR", "XEC", "XTZ", "RUNE", "IOTA", "NEXO", "COMP", "SNX", "YFI", "ZRX", "BAT", "OMG", "ZIL", "QTUM", "RVN", "ICX", "STORJ", "ANKR", "CRO", "BTTOLD", "HIVE", "DCR", "SC", "ZEN", "BTS", "STEEM", "WAXP", "DGB", "AR", "XEM", "IOST", "NANO", "ONT", "WOO", "SRM", "RAY", "SUSHI", "CRV", "1INCH", "KDA", "IOTX", "HNT", "DYDX", "CFX", "XDC", "REN", "RSR", "OCEAN", "ALPHA", "AUDIO", "INJ", "RLC", "SKL", "OGN", "ANKR", "CKB", "COTI", "CTSI", "DENT", "DUSK", "FET", "FLM", "FORTH", "FTM", "GRT", "HOT", "ICP", "IDEX", "IMX", "JASMY", "KAVA", "KEEP", "KLAY", "LDO", "LPT", "LRC", "MASK", "MATIC", "MINA", "MKR", "MLN", "MXC", "NMR", "NU", "OGN", "OM", "ONE", "ONG", "ONT", "ORN", "OXT", "PAXG", "PERP", "PHA", "POLS", "POND", "PUNDIX", "QNT", "RAD", "RARE", "RARI", "REN", "REP", "REQ", "RLC", "ROSE", "RSR", "RUNE", "RVN", "SAND", "SC", "SHIB", "SKL", "SLP", "SNX", "SOL", "SPELL", "SRM", "STEEM", "STORJ", "STPT", "STRAX", "SUPER", "SUSHI", "SWAP", "SXP", "SYS", "TFUEL", "THETA", "TKO", "TLM", "TRB", "TRX", "UMA", "UNI", "USDT", "VET", "WAVES", "WAXP", "WBTC", "WETH", "XDC", "XEM", "XLM", "XMR", "XRP", "XTZ", "YFI", "YGG", "ZEC", "ZEN", "ZIL", "ZRX", "USDbC", "OP", "ARB", "PENGU", "JUP", "HYPE", "RNDR"],
     stable_symbol="USDC"
 )
 
@@ -391,9 +391,7 @@ TOKEN_MAP = {
     "LTC": "0x5a98fcbea516cf06857215779fd812ca3bef1b32",    # Wrapped LTC (correct)
     "BCH": "0x37427576324f6d1e31de7d0546a34b2f6f6e1b1b",    # Wrapped BCH (correct)
     "XLM": "0x8f3470A7388c05eE4e7AF3d01D8C722b0FF52374",    # Wrapped XLM (correct)
-    "ATOM": "0x8D983cb9388E62c8C4Fdc9b4b6bdfb5b5b5b5b5",    # Wrapped ATOM (correct)
     "ETC": "0x3d6F0DEa3CE3DE8eC6C8Df9C739D6C5C4C4C4C4C",    # Wrapped ETC (correct)
-    "FIL": "0x6b175474e89094c44da98b954eedeac495271d0f",    # Wrapped FIL (correct)
     "VET": "0xD850942eF8811f2A866692A623011bDE52a462C1",     # Wrapped VET (correct)
     # Competition-ready tokens only - verified addresses
     "USDbC": "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", # Base USDC
@@ -425,8 +423,8 @@ DECIMALS = {
     # Major tokens - competition ready
     "USDC": 6, "USDT": 6, "WETH": 18, "WBTC": 8, "BTC": 8, "ETH": 18, "SOL": 9,
     "BNB": 18, "XRP": 6, "ADA": 6, "AVAX": 18, "DOGE": 8, "DOT": 10, "MATIC": 18,
-    "LINK": 18, "UNI": 18, "LTC": 8, "BCH": 8, "XLM": 7, "ATOM": 6, "ETC": 18,
-    "FIL": 18, "VET": 18,
+    "LINK": 18, "UNI": 18, "LTC": 8, "BCH": 8, "XLM": 7, "ETC": 18,
+    "VET": 18,
     # Competition-ready tokens
     "USDbC": 6, "OP": 18, "ARB": 18,
     # BSC tokens
@@ -756,8 +754,8 @@ COINGECKO_IDS = {
     "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
     "XRP": "ripple", "ADA": "cardano", "AVAX": "avalanche-2", "DOGE": "dogecoin",
     "DOT": "polkadot", "MATIC": "matic-network", "LINK": "chainlink", "UNI": "uniswap",
-    "LTC": "litecoin", "BCH": "bitcoin-cash", "XLM": "stellar", "ATOM": "cosmos",
-    "ETC": "ethereum-classic", "FIL": "filecoin", "VET": "vechain",
+    "LTC": "litecoin", "BCH": "bitcoin-cash", "XLM": "stellar",
+    "ETC": "ethereum-classic", "VET": "vechain",
     # Competition-ready tokens
     "USDbC": "usd-coin", "OP": "optimism", "ARB": "arbitrum",
     # BSC tokens (same as mainnet for price data)
@@ -854,9 +852,7 @@ def calculate_dynamic_targets(holdings: dict[str, float], prices: dict[str, floa
         "LTC": 0.02,   # 2% LTC (major)
         "BCH": 0.02,   # 2% BCH (major)
         "XLM": 0.02,   # 2% XLM (major)
-        "ATOM": 0.02,  # 2% ATOM (major)
         "ETC": 0.01,   # 1% ETC (major)
-        "FIL": 0.01,   # 1% FIL (storage)
         "VET": 0.01    # 1% VET (IoT)
     }
     
@@ -884,9 +880,7 @@ def calculate_dynamic_targets(holdings: dict[str, float], prices: dict[str, floa
                 "LTC": 0.01,   # Less LTC
                 "BCH": 0.01,   # Less BCH
                 "XLM": 0.01,   # Less XLM
-                "ATOM": 0.01,  # Less ATOM
                 "ETC": 0.01,   # Less ETC
-                "FIL": 0.01,   # Less FIL
                 "VET": 0.01    # Less VET
             }
         elif sentiment == 'bearish' or risk_level > 7:
@@ -908,9 +902,7 @@ def calculate_dynamic_targets(holdings: dict[str, float], prices: dict[str, floa
                 "LTC": 0.03,   # More LTC (stable)
                 "BCH": 0.02,   # Less BCH
                 "XLM": 0.02,   # Less XLM
-                "ATOM": 0.03,  # More ATOM (stable)
                 "ETC": 0.02,   # Less ETC
-                "FIL": 0.02,   # Less FIL
                 "VET": 0.02    # Less VET
             }
     
@@ -1984,7 +1976,7 @@ def rebalance(environment=None):
     
     try:
         # Fetch market data first - Top 20 tokens only
-        top_20_tokens = ["USDC", "USDT", "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "AVAX", "DOGE", "DOT", "MATIC", "LINK", "UNI", "LTC", "BCH", "XLM", "ATOM", "ETC", "FIL"]
+        top_20_tokens = ["USDC", "USDT", "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "AVAX", "DOGE", "DOT", "MATIC", "LINK", "UNI", "LTC", "BCH", "XLM", "ETC", "VET"]
         prices = fetch_prices(top_20_tokens)
         holdings = fetch_holdings(api_key, base_url)
         
