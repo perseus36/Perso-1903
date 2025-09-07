@@ -20,6 +20,14 @@ class RiskManager:
         # Track active positions
         self.active_positions = {}  # {symbol: {entry_price, entry_time, highest_price, amount}}
         
+        # Double down strategy tracking
+        self.stop_loss_history = {}  # {symbol: {stop_price, stop_time, original_entry_price}}
+        self.double_down_positions = {}  # {symbol: {entry_price, entry_time, amount, is_double_down}}
+        
+        # Scalping strategy tracking
+        self.scalping_positions = {}  # {symbol: {entry_price, entry_time, amount, partial_sold, stop_price}}
+        self.scalping_sell_history = {}  # {symbol: {sell_price, sell_time, amount_sold}}
+        
     def calculate_position_size(self, portfolio_value: float, price: float) -> float:
         """
         Calculate maximum position size based on portfolio value and risk parameters
@@ -32,18 +40,28 @@ class RiskManager:
         size = max_position_value / price
         return size
     
-    def check_exit_conditions(self, entry_price: float, current_price: float, highest_price: Optional[float] = None) -> Optional[str]:
+    def check_exit_conditions(self, entry_price: float, current_price: float, highest_price: Optional[float] = None, symbol: str = None) -> Optional[str]:
         """
         Check if a position should be closed based on risk management rules
         
         :param entry_price: Entry price of the position
         :param current_price: Current market price
         :param highest_price: Highest price seen since entry (for trailing stop)
+        :param symbol: Token symbol (for double down logic)
         :return: "STOP_LOSS", "TAKE_PROFIT", "TRAILING_STOP" or None
         """
         change = (current_price - entry_price) / entry_price
         
-        # Stop loss check
+        # Check if this is a double down position (no stop loss)
+        if symbol and symbol in self.double_down_positions:
+            is_double_down = self.double_down_positions[symbol].get('is_double_down', False)
+            if is_double_down:
+                # Only check take profit for double down positions
+                if change >= self.take_profit_pct:
+                    return "TAKE_PROFIT"
+                return None
+        
+        # Stop loss check (only for regular positions)
         if change <= self.stop_loss_pct:
             return "STOP_LOSS"
         
@@ -97,7 +115,8 @@ class RiskManager:
         exit_condition = self.check_exit_conditions(
             entry_price, 
             current_price, 
-            position['highest_price']
+            position['highest_price'],
+            symbol
         )
         
         if exit_condition:
@@ -140,6 +159,15 @@ class RiskManager:
             'duration': time.time() - position['entry_time']
         }
         
+        # Track stop loss events for double down strategy
+        if reason == "STOP_LOSS":
+            self.stop_loss_history[symbol] = {
+                'stop_price': exit_price,
+                'stop_time': time.time(),
+                'original_entry_price': entry_price
+            }
+            print(f"📝 Stop loss recorded for {symbol}: ${exit_price:.4f}")
+        
         # Remove from active positions
         del self.active_positions[symbol]
         
@@ -149,6 +177,195 @@ class RiskManager:
         print(f"   Reason: {reason}")
         
         return trade_record
+    
+    def check_double_down_opportunity(self, symbol: str, current_price: float) -> bool:
+        """
+        Check if a token qualifies for double down strategy
+        Token must have had a stop loss and dropped 5% more from stop price
+        
+        :param symbol: Token symbol
+        :param current_price: Current market price
+        :return: True if double down opportunity exists
+        """
+        if symbol not in self.stop_loss_history:
+            return False
+        
+        stop_data = self.stop_loss_history[symbol]
+        stop_price = stop_data['stop_price']
+        
+        # Check if current price is 5% below stop price
+        drop_from_stop = (stop_price - current_price) / stop_price
+        if drop_from_stop >= 0.05:  # 5% drop from stop price
+            print(f"🎯 Double down opportunity for {symbol}:")
+            print(f"   Stop price: ${stop_price:.4f}")
+            print(f"   Current price: ${current_price:.4f}")
+            print(f"   Drop from stop: {drop_from_stop * 100:.2f}%")
+            return True
+        
+        return False
+    
+    def open_double_down_position(self, symbol: str, entry_price: float, amount: float):
+        """
+        Open a double down position (no stop loss)
+        
+        :param symbol: Token symbol
+        :param entry_price: Entry price
+        :param amount: Position size
+        """
+        self.active_positions[symbol] = {
+            'entry_price': entry_price,
+            'entry_time': time.time(),
+            'highest_price': entry_price,
+            'amount': amount
+        }
+        
+        # Mark as double down position
+        self.double_down_positions[symbol] = {
+            'entry_price': entry_price,
+            'entry_time': time.time(),
+            'amount': amount,
+            'is_double_down': True
+        }
+        
+        print(f"🔄 Double down position opened: {symbol} at ${entry_price:.4f}, amount: {amount:.4f}")
+        print(f"   ⚠️  No stop loss for this position - only take profit at {self.take_profit_pct * 100:.1f}%")
+        
+        # Remove from stop loss history since we're re-entering
+        if symbol in self.stop_loss_history:
+            del self.stop_loss_history[symbol]
+    
+    def check_scalping_opportunities(self, symbol: str, current_price: float) -> dict:
+        """
+        Check for scalping strategy opportunities
+        Returns dict with action type and details
+        """
+        if symbol not in self.scalping_positions:
+            return {"action": None}
+        
+        position = self.scalping_positions[symbol]
+        entry_price = position['entry_price']
+        current_amount = position['amount'] - position.get('partial_sold', 0)
+        
+        # Calculate price changes
+        rise_5_pct = entry_price * 1.05
+        rise_10_pct = entry_price * 1.10
+        drop_3_pct = entry_price * 0.97
+        
+        # Check for %10 rise -> full sell (priority over partial sell)
+        if current_price >= (rise_10_pct - 0.01) and current_amount > 0:  # Small tolerance for floating point
+            return {
+                "action": "FULL_SELL",
+                "amount": current_amount,
+                "reason": "10% rise - full sell"
+            }
+        
+        # Check for %5 rise -> %50 sell + stop loss
+        if current_price >= (rise_5_pct - 0.01) and position.get('partial_sold', 0) == 0:  # Small tolerance
+            return {
+                "action": "PARTIAL_SELL",
+                "amount": current_amount * 0.5,  # Sell 50%
+                "stop_price": entry_price,
+                "reason": "5% rise - partial sell + stop loss"
+            }
+        
+        # Check for %3 drop -> rebuy (if partially sold)
+        if current_price <= (drop_3_pct + 0.01) and position.get('partial_sold', 0) > 0:  # Small tolerance
+            return {
+                "action": "REBUY",
+                "amount": position['partial_sold'],  # Rebuy the sold amount
+                "reason": "3% drop - rebuy"
+            }
+        
+        # Check for stop loss trigger
+        if position.get('stop_price') and current_price <= position['stop_price']:
+            return {
+                "action": "STOP_LOSS",
+                "amount": current_amount,
+                "reason": "Stop loss triggered"
+            }
+        
+        return {"action": None}
+    
+    def check_scalping_rebuy_opportunity(self, symbol: str, current_price: float) -> dict:
+        """
+        Check for rebuy opportunity after full sell (5% drop from sell price)
+        """
+        if symbol not in self.scalping_sell_history:
+            return {"action": None}
+        
+        sell_data = self.scalping_sell_history[symbol]
+        sell_price = sell_data['sell_price']
+        
+        # Check for 5% drop from sell price
+        rebuy_price = sell_price * 0.95
+        if current_price <= (rebuy_price + 0.01):  # Small tolerance for floating point
+            return {
+                "action": "REBUY_FROM_SELL",
+                "amount": sell_data['amount_sold'],
+                "reason": "5% drop from sell price - rebuy"
+            }
+        
+        return {"action": None}
+    
+    def execute_scalping_action(self, symbol: str, action_data: dict, current_price: float):
+        """
+        Execute scalping action and update position tracking
+        """
+        action = action_data["action"]
+        
+        if action == "PARTIAL_SELL":
+            # Update position tracking
+            self.scalping_positions[symbol]['partial_sold'] = action_data['amount']
+            self.scalping_positions[symbol]['stop_price'] = action_data['stop_price']
+            print(f"📊 Scalping: {symbol} partial sell executed - 50% sold, stop at ${action_data['stop_price']:.4f}")
+            
+        elif action == "REBUY":
+            # Reset partial sell tracking
+            self.scalping_positions[symbol]['partial_sold'] = 0
+            self.scalping_positions[symbol]['stop_price'] = None
+            print(f"📊 Scalping: {symbol} rebuy executed - position restored")
+            
+        elif action == "FULL_SELL":
+            # Record sell history for potential rebuy
+            self.scalping_sell_history[symbol] = {
+                'sell_price': current_price,
+                'sell_time': time.time(),
+                'amount_sold': action_data['amount']
+            }
+            # Remove from scalping positions
+            del self.scalping_positions[symbol]
+            print(f"📊 Scalping: {symbol} full sell executed at ${current_price:.4f}")
+            
+        elif action == "STOP_LOSS":
+            # Remove from scalping positions
+            del self.scalping_positions[symbol]
+            print(f"📊 Scalping: {symbol} stop loss triggered at ${current_price:.4f}")
+            
+        elif action == "REBUY_FROM_SELL":
+            # Open new scalping position
+            self.scalping_positions[symbol] = {
+                'entry_price': current_price,
+                'entry_time': time.time(),
+                'amount': action_data['amount'],
+                'partial_sold': 0,
+                'stop_price': None
+            }
+            # Remove from sell history
+            del self.scalping_sell_history[symbol]
+            print(f"📊 Scalping: {symbol} rebuy from sell executed at ${current_price:.4f}")
+    
+    def open_scalping_position(self, symbol: str, entry_price: float, amount: float):
+        """
+        Open a new scalping position
+        """
+        self.scalping_positions[symbol] = {
+            'entry_price': entry_price,
+            'entry_time': time.time(),
+            'amount': amount,
+            'partial_sold': 0,
+            'stop_price': None
+        }
+        print(f"📊 Scalping position opened: {symbol} at ${entry_price:.4f}, amount: {amount:.4f}")
     
     def get_active_positions(self) -> Dict:
         """
@@ -178,27 +395,55 @@ class RiskManager:
     
     def save_positions(self, filename: str = 'positions.json'):
         """
-        Save active positions to file
+        Save all positions to file (active, scalping, double down)
         
         :param filename: Output filename
         """
         try:
+            all_positions = {
+                'active_positions': self.active_positions,
+                'scalping_positions': self.scalping_positions,
+                'double_down_positions': self.double_down_positions,
+                'stop_loss_history': self.stop_loss_history,
+                'scalping_sell_history': self.scalping_sell_history
+            }
             with open(filename, 'w') as f:
-                json.dump(self.active_positions, f, indent=2)
-            print(f"💾 Positions saved to {filename}")
+                json.dump(all_positions, f, indent=2)
+            print(f"💾 All positions saved to {filename}")
         except Exception as e:
             print(f"❌ Error saving positions: {e}")
     
     def load_positions(self, filename: str = 'positions.json'):
         """
-        Load active positions from file
+        Load all positions from file (active, scalping, double down)
         
         :param filename: Input filename
         """
         try:
             with open(filename, 'r') as f:
-                self.active_positions = json.load(f)
-            print(f"📂 Positions loaded from {filename}")
+                data = json.load(f)
+                
+            # Handle both old format (just active_positions) and new format (all positions)
+            if isinstance(data, dict) and 'active_positions' in data:
+                # New format with all position types
+                self.active_positions = data.get('active_positions', {})
+                self.scalping_positions = data.get('scalping_positions', {})
+                self.double_down_positions = data.get('double_down_positions', {})
+                self.stop_loss_history = data.get('stop_loss_history', {})
+                self.scalping_sell_history = data.get('scalping_sell_history', {})
+            else:
+                # Old format - just active positions
+                self.active_positions = data
+                self.scalping_positions = {}
+                self.double_down_positions = {}
+                self.stop_loss_history = {}
+                self.scalping_sell_history = {}
+                
+            print(f"📂 All positions loaded from {filename}")
         except Exception as e:
             print(f"❌ Error loading positions: {e}")
             self.active_positions = {}
+            self.scalping_positions = {}
+            self.double_down_positions = {}
+            self.stop_loss_history = {}
+            self.scalping_sell_history = {}
