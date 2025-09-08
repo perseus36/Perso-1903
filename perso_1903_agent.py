@@ -431,7 +431,10 @@ TOKEN_MAP = {
     "BTC": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",   # WBTC (same as WBTC)
     "ETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",   # WETH (same as WETH)
     "SOL": "So11111111111111111111111111111111111111112",   # Solana SOL
-    "BNB": "0xB8c77482e45F1F44dE1745F52C74426C631bDD52",   # BNB (BSC) (correct)
+    "RENDER": "rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof", # Solana RENDER
+    "JUP": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",   # Solana JUP
+    "VIRTUAL": "3iQL8BFS2vE7mww4ehAqQHAsbmRNCrPxizWAT2Zfyr9y", # Solana VIRTUAL
+    "BNB": "0xB8c77482e45F1F44dE1745F52C74426C631bDD52",   # BNB (correct)
     "XRP": "0x1d5c65c935d92fef9b79d6b415140841df6f5d95",   # Wrapped XRP (correct)
     "ADA": "0x3ee2200efb3400fabb9aacf31297cbdd1d435d47",   # Wrapped ADA (correct)
     "AVAX": "0x85f138bfee4ef8e540890cfb48f620571d67eda3",   # Wrapped AVAX (correct)
@@ -445,27 +448,28 @@ TOKEN_MAP = {
     "XLM": "0x8f3470A7388c05eE4e7AF3d01D8C722b0FF52374",    # Wrapped XLM (correct)
     "ETC": "0x3d6F0DEa3CE3DE8eC6C8Df9C739D6C5C4C4C4C4C",    # Wrapped ETC (correct)
     "VET": "0xD850942eF8811f2A866692A623011bDE52a462C1",     # Wrapped VET (correct)
+    "LPT": "0x58b6a8a3302369daec383334672404ee733ab239",     # Livepeer (correct)
     # Competition-ready tokens only - verified addresses
     "USDbC": "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", # Base USDC
     "OP": "0x4200000000000000000000000000000000000042",    # Optimism OP
     "ARB": "0x912CE59144191C1204E64559FE8253A0e49E6548",   # Arbitrum ARB
-    # BSC (Binance Smart Chain) tokens
-    "BNB_BSC": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",  # BSC BNB
-    "USDT_BSC": "0x55d398326f99059fF775485246999027B3197955",  # BSC USDT
-    "USDC_BSC": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",   # BSC USDC
-    "WETH_BSC": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",  # BSC WETH
-    "WBTC_BSC": "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c",  # BSC WBTC
-    # Avalanche tokens
-    "AVAX_AVAX": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",  # Avalanche AVAX
-    "USDT_AVAX": "0xc7198437980c041c805A1EDcbA50c1Ce5db95118",  # Avalanche USDT
-    "USDC_AVAX": "0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664",  # Avalanche USDC
-    "WETH_AVAX": "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",  # Avalanche WETH
-    "WBTC_AVAX": "0x50b7545627a5162F82A992c33b87aDc75187B218",  # Avalanche WBTC
-    # Linea tokens
-    "ETH_LINEA": "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",   # Linea ETH
-    "USDC_LINEA": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",  # Linea USDC
-    "USDT_LINEA": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",  # Linea USDT
-    "WETH_LINEA": "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",  # Linea WETH
+    # Base network tokens
+    "VIRTUAL_BASE": "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b", # Base VIRTUAL
+    "MAV": "0x64b88c73a5dfa78d1713fe1b4c69a22d7e0faaa7",   # Base MAV
+    "RSR": "0xaB36452DbAC151bE02b16Ca17d8919826072f64a",   # Base RSR
+    "HYPER": "0xc9d23ed2adb0f551369946bd377f8644ce1ca5c4", # Base HYPER
+    # LayerZero tokens (multi-chain)
+    "ZRO_OP": "0x6985884C4392D348587B19cb9eAAf157F13271cd", # Optimism ZRO
+    "ZRO_ARB": "0x6985884C4392D348587B19cb9eAAf157F13271cd", # Arbitrum ZRO
+    "ZRO_BASE": "0x6985884C4392D348587B19cb9eAAf157F13271cd", # Base ZRO
+    "ZRO_POLYGON": "0x6985884C4392D348587B19cb9eAAf157F13271cd", # Polygon ZRO
+    # Cartesi tokens
+    "CTSI_OP": "0xec6adef5e1006bb305bb1975333e8fc4071295bf", # Optimism CTSI
+    "CTSI_POLYGON": "0x2727Ab1c2D22170ABc9b595177B2D5C6E1Ab7B7B", # Polygon CTSI
+    # The Graph token
+    "GRT_ARB": "0x9623063377AD1B27544C965cCd7342f7EA7e88C7", # Arbitrum GRT
+    # Radiant Capital tokens
+    "RDNT_ARB": "0x3082CC23568EA640225c2467653DB90e9250AaA0", # Arbitrum RDNT
 }
 
 # Address to symbol mapping for balance lookups
@@ -473,18 +477,22 @@ ADDRESS_TO_SYMBOL = {addr.lower(): sym for sym, addr in TOKEN_MAP.items()}
 
 DECIMALS = {
     # Major tokens - competition ready
-    "USDC": 6, "USDT": 6, "WETH": 18, "WBTC": 8, "BTC": 8, "ETH": 18, "SOL": 9,
+    "USDC": 6, "USDT": 6, "WETH": 18, "WBTC": 8, "BTC": 8, "ETH": 18, "SOL": 9, "RENDER": 8, "JUP": 6, "VIRTUAL": 9,
     "BNB": 18, "XRP": 6, "ADA": 6, "AVAX": 18, "DOGE": 8, "DOT": 10, "MATIC": 18,
     "LINK": 18, "UNI": 18, "LTC": 8, "BCH": 8, "XLM": 7, "ETC": 18,
-    "VET": 18,
+    "VET": 18, "LPT": 18,
     # Competition-ready tokens
     "USDbC": 6, "OP": 18, "ARB": 18,
-    # BSC tokens
-    "BNB_BSC": 18, "USDT_BSC": 18, "USDC_BSC": 18, "WETH_BSC": 18, "WBTC_BSC": 8,
-    # Avalanche tokens
-    "AVAX_AVAX": 18, "USDT_AVAX": 6, "USDC_AVAX": 6, "WETH_AVAX": 18, "WBTC_AVAX": 8,
-    # Linea tokens
-    "ETH_LINEA": 18, "USDC_LINEA": 6, "USDT_LINEA": 6, "WETH_LINEA": 18
+    # Base network tokens
+    "VIRTUAL_BASE": 18, "MAV": 18, "RSR": 18, "HYPER": 18,
+    # LayerZero tokens (multi-chain)
+    "ZRO_OP": 18, "ZRO_ARB": 18, "ZRO_BASE": 18, "ZRO_POLYGON": 18,
+    # Cartesi tokens
+    "CTSI_OP": 18, "CTSI_POLYGON": 18,
+    # The Graph token
+    "GRT_ARB": 18,
+    # Radiant Capital tokens
+    "RDNT_ARB": 18,
 }
 
 # ===== Symbol aliasing (normalize symbols to canonical names) =====
@@ -527,8 +535,8 @@ except Exception:
 import json
 
 RISK_CFG = {
-    "trade_min_usd": 50.0,          # per-trade minimum USD size
-    "per_trade_cap_pct": 0.10,      # per-trade cap as % of equity (stricter than 25% rule)
+    "trade_min_pct": 0.05,          # per-trade minimum as % of portfolio (5%)
+    "trade_max_pct": 0.15,           # per-trade maximum as % of portfolio (15%)
     "per_token_position_cap_pct": 0.50,  # max exposure per token as % of equity
     "daily_loss_limit_pct": 0.15,   # stop trading if equity ≤ 85% of start-of-day equity
     "cooldown_seconds": 300,        # min seconds between trades for the same token
@@ -611,17 +619,19 @@ def risk_guard_or_raise(
     if px > 0:
         tv = float(amount_float) * float(px)
 
-        # Per-trade minimum USD
-        if tv < RISK_CFG["trade_min_usd"]:
-            raise ValueError(f"Trade size ${tv:.2f} below min ${RISK_CFG['trade_min_usd']:.2f}.")
-
-        # Per-trade USD cap (stricter than 25% competition rule)
+        # Per-trade minimum USD (dynamic based on portfolio)
         if equity:
-            cap_usd = float(equity) * float(RISK_CFG["per_trade_cap_pct"])
-            if tv > cap_usd + 1e-9:
+            min_trade_usd = float(equity) * float(RISK_CFG["trade_min_pct"])
+            if tv < min_trade_usd:
+                raise ValueError(f"Trade size ${tv:.2f} below min ${min_trade_usd:.2f} ({RISK_CFG['trade_min_pct']*100:.0f}% of portfolio).")
+
+        # Per-trade USD cap (dynamic based on portfolio)
+        if equity:
+            max_trade_usd = float(equity) * float(RISK_CFG["trade_max_pct"])
+            if tv > max_trade_usd + 1e-9:
                 raise ValueError(
-                    f"Trade size ${tv:.2f} exceeds per-trade cap ${cap_usd:.2f} "
-                    f"({RISK_CFG['per_trade_cap_pct']*100:.0f}% of equity)."
+                    f"Trade size ${tv:.2f} exceeds per-trade cap ${max_trade_usd:.2f} "
+                    f"({RISK_CFG['trade_max_pct']*100:.0f}% of portfolio)."
                 )
 
         # Per-token position cap
@@ -647,8 +657,8 @@ def risk_note_trade_success(price_lookup_token: str) -> None:
     except Exception as e:
         print(f"Info: could not update cooldown state: {e}")
 
-def _maintenance_amount_for(symbol: str, target_min_usd: float) -> float:
-    """Return an amount (human units) that is >= target_min_usd at current price."""
+def _maintenance_amount_for(symbol: str, portfolio_value: float) -> float:
+    """Return an amount (human units) that is >= min trade percentage at current price."""
     addr = TOKEN_MAP.get(symbol, "")
     px = 0.0
     try:
@@ -665,7 +675,10 @@ def _maintenance_amount_for(symbol: str, target_min_usd: float) -> float:
     if px <= 0.0:
         # Fallback guesses to avoid zero-division
         px = 2000.0 if symbol.upper() in ("WETH","ETH") else 50000.0 if symbol.upper() in ("WBTC","BTC") else 1.0
-    amt = max(target_min_usd / px, MIN_TRADE_AMOUNT)
+    
+    # Calculate min trade amount as percentage of portfolio
+    min_trade_usd = portfolio_value * RISK_CFG["trade_min_pct"]
+    amt = max(min_trade_usd / px, MIN_TRADE_AMOUNT)
     return float(amt)
 
 # ===== Structured logging (JSONL) =====
@@ -803,21 +816,23 @@ def health_check(verbose: bool = True) -> bool:
 COINGECKO_IDS = {
     # Major tokens - competition ready
     "USDC": "usd-coin", "USDT": "tether", "WETH": "weth", "WBTC": "wrapped-bitcoin",
-    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
+    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "RENDER": "render", "JUP": "jupiter", "VIRTUAL": "virtual-protocol", "BNB": "binancecoin",
     "XRP": "ripple", "ADA": "cardano", "AVAX": "avalanche-2", "DOGE": "dogecoin",
     "DOT": "polkadot", "MATIC": "matic-network", "LINK": "chainlink", "UNI": "uniswap",
     "LTC": "litecoin", "BCH": "bitcoin-cash", "XLM": "stellar",
-    "ETC": "ethereum-classic", "VET": "vechain",
+    "ETC": "ethereum-classic", "VET": "vechain", "LPT": "livepeer",
     # Competition-ready tokens
     "USDbC": "usd-coin", "OP": "optimism", "ARB": "arbitrum",
-    # BSC tokens (same as mainnet for price data)
-    "BNB_BSC": "binancecoin", "USDT_BSC": "tether", "USDC_BSC": "usd-coin", 
-    "WETH_BSC": "weth", "WBTC_BSC": "wrapped-bitcoin",
-    # Avalanche tokens (same as mainnet for price data)
-    "AVAX_AVAX": "avalanche-2", "USDT_AVAX": "tether", "USDC_AVAX": "usd-coin",
-    "WETH_AVAX": "weth", "WBTC_AVAX": "wrapped-bitcoin",
-    # Linea tokens (same as mainnet for price data)
-    "ETH_LINEA": "ethereum", "USDC_LINEA": "usd-coin", "USDT_LINEA": "tether", "WETH_LINEA": "weth"
+    # Base network tokens
+    "VIRTUAL_BASE": "virtual-protocol", "MAV": "maverick-protocol", "RSR": "reserve-rights", "HYPER": "hyperlane",
+    # LayerZero tokens (multi-chain)
+    "ZRO_OP": "layerzero", "ZRO_ARB": "layerzero", "ZRO_BASE": "layerzero", "ZRO_POLYGON": "layerzero",
+    # Cartesi tokens
+    "CTSI_OP": "cartesi", "CTSI_POLYGON": "cartesi",
+    # The Graph token
+    "GRT_ARB": "the-graph",
+    # Radiant Capital tokens
+    "RDNT_ARB": "radiant-capital",
 }
 
 DRIFT_THRESHOLD = 0.02    # rebalance if > 2% off target
@@ -1084,12 +1099,9 @@ def calculate_transaction_fee(trade_amount_usd: float, chain: str = "eth") -> fl
     gas_fees = {
         "eth": 15.0,      # Ethereum: ~$15
         "polygon": 0.01,  # Polygon: ~$0.01
-        "bsc": 0.05,      # BSC: ~$0.05
         "arbitrum": 0.5,  # Arbitrum: ~$0.5
         "base": 0.1,      # Base: ~$0.1
         "optimism": 0.3,  # Optimism: ~$0.3
-        "avalanche": 0.1, # Avalanche: ~$0.1
-        "linea": 0.05,   # Linea: ~$0.05
         "solana": 0.001   # Solana: ~$0.001
     }
     
@@ -1438,7 +1450,7 @@ def get_competition_status() -> dict:
         },
         "available_chains": {
             "svm": True,
-            "evm": ["eth", "polygon", "bsc", "arbitrum", "base", "optimism", "avalanche", "linea"]
+            "evm": ["eth", "polygon", "arbitrum", "base", "optimism"]
         },
         "trading_constraints": {
             "minimum_pair_age_hours": 0,
@@ -1455,11 +1467,17 @@ def execute_small_maintenance_trade():
     env = resolve_env_for_now()
     api_key, base_url = resolve_api_credentials(env)
 
+    # Get current portfolio value for dynamic sizing
+    portfolio_value = get_portfolio_total_value_usd(api_key, base_url)
+    if not portfolio_value:
+        print("❌ Cannot get portfolio value for maintenance trade")
+        return
+
     maintenance_symbols = ["WETH", "WBTC", "OP", "ARB"]
     for sym in maintenance_symbols:
         if sym in TOKEN_MAP:
-            # Size slightly above the configured USD minimum to avoid rejections
-            amount = _maintenance_amount_for(sym, RISK_CFG.get("trade_min_usd", 50.0) + 5.0)
+            # Size based on portfolio percentage
+            amount = _maintenance_amount_for(sym, portfolio_value)
             try:
                 res = execute_trade(
                     symbol=sym,
@@ -1682,13 +1700,24 @@ def execute_trade(symbol, side, amount_float, api_key: str, base_url: str):
         if result.get("success"):
             update_daily_trade_count()
             
-            # Record cooldown timestamp for risk management
+            # Record cooldown timestamp for risk management (bypass for scalping)
             try:
                 _side = "buy" if from_token.lower() == TOKEN_MAP.get("USDC","").lower() else "sell"
                 _px_token = (to_token if _side == "buy" else from_token)
-                risk_note_trade_success(price_lookup_token=_px_token)
+                
+                # Only record cooldown if not a scalping action
+                if not (symbol in RISK_MANAGER.scalping_positions or symbol in RISK_MANAGER.scalping_sell_history):
+                    risk_note_trade_success(price_lookup_token=_px_token)
+                
+                # Open scalping position for buy trades (if not already scalping)
+                if _side == "buy" and symbol not in RISK_MANAGER.scalping_positions and symbol not in RISK_MANAGER.double_down_positions:
+                    current_price = fetch_prices([symbol]).get(symbol, 0)
+                    if current_price > 0:
+                        RISK_MANAGER.open_scalping_position(symbol, current_price, amount_float)
+                        print(f"📊 New scalping position opened for {symbol}")
+                        
             except Exception as e:
-                print(f"Info: could not update cooldown state: {e}")
+                print(f"Info: could not update trade state: {e}")
         
         return result
     except Exception as e:
@@ -2084,6 +2113,69 @@ def rebalance(environment=None):
                         RATE_LIMITER.notify_executed()
                     else:
                         print(f"❌ Failed to execute exit trade: {exit_result.get('error')}")
+        
+        # Check for scalping opportunities (rate limit compliant)
+        print("📊 Checking scalping opportunities...")
+        scalping_actions = []
+        
+        # Check existing scalping positions
+        for symbol in RISK_MANAGER.scalping_positions:
+            if symbol in prices:
+                action_data = RISK_MANAGER.check_scalping_opportunities(symbol, prices[symbol])
+                if action_data["action"]:
+                    scalping_actions.append((symbol, action_data, prices[symbol]))
+        
+        # Check for rebuy opportunities after full sells
+        for symbol in RISK_MANAGER.scalping_sell_history:
+            if symbol in prices:
+                action_data = RISK_MANAGER.check_scalping_rebuy_opportunity(symbol, prices[symbol])
+                if action_data["action"]:
+                    scalping_actions.append((symbol, action_data, prices[symbol]))
+        
+        # Execute scalping actions (rate limit compliant)
+        for symbol, action_data, current_price in scalping_actions:
+            if RATE_LIMITER.allow():
+                print(f"📊 Executing scalping action for {symbol}: {action_data['reason']}")
+                
+                # Execute the trade
+                if action_data["action"] in ["PARTIAL_SELL", "FULL_SELL", "STOP_LOSS"]:
+                    trade_result = execute_trade(symbol, "sell", action_data["amount"], api_key, base_url)
+                elif action_data["action"] in ["REBUY", "REBUY_FROM_SELL"]:
+                    trade_result = execute_trade(symbol, "buy", action_data["amount"], api_key, base_url)
+                
+                if trade_result.get("success"):
+                    RISK_MANAGER.execute_scalping_action(symbol, action_data, current_price)
+                    RATE_LIMITER.notify_executed()
+                    print(f"✅ Scalping action completed for {symbol}")
+                else:
+                    print(f"❌ Failed to execute scalping action: {trade_result.get('error')}")
+            else:
+                print(f"⏳ Rate limiter active, skipping scalping action for {symbol}")
+        
+        # Check for double down opportunities (rate limit compliant)
+        print("🎯 Checking double down opportunities...")
+        for symbol in available_tokens:
+            if symbol in prices and symbol not in active_positions and symbol not in RISK_MANAGER.scalping_positions:
+                if RISK_MANAGER.check_double_down_opportunity(symbol, prices[symbol]):
+                    print(f"🔄 Double down opportunity detected for {symbol}")
+                    
+                    # Calculate position size for double down
+                    portfolio_value = sum(holdings.get(s, 0) * prices.get(s, 0) for s in holdings)
+                    position_size = RISK_MANAGER.calculate_position_size(portfolio_value, prices[symbol])
+                    
+                    # Execute double down buy
+                    if RATE_LIMITER.allow():
+                        print(f"💰 Executing double down buy: {symbol} at ${prices[symbol]:.4f}")
+                        buy_result = execute_trade(symbol, "buy", position_size, api_key, base_url)
+                        
+                        if buy_result.get("success"):
+                            RISK_MANAGER.open_double_down_position(symbol, prices[symbol], position_size)
+                            RATE_LIMITER.notify_executed()
+                            print(f"✅ Double down position opened for {symbol}")
+                        else:
+                            print(f"❌ Failed to execute double down buy: {buy_result.get('error')}")
+                    else:
+                        print(f"⏳ Rate limiter active, skipping double down for {symbol}")
         
         # Execute safe rebalancing with comprehensive safety guards
         print("🛡️ Executing safe rebalancing with safety guards...")

@@ -247,33 +247,33 @@ class RiskManager:
         current_amount = position['amount'] - position.get('partial_sold', 0)
         
         # Calculate price changes
+        rise_2_pct = entry_price * 1.02
         rise_5_pct = entry_price * 1.05
-        rise_10_pct = entry_price * 1.10
-        drop_3_pct = entry_price * 0.97
+        drop_2_pct = entry_price * 0.98
         
-        # Check for %10 rise -> full sell (priority over partial sell)
-        if current_price >= (rise_10_pct - 0.01) and current_amount > 0:  # Small tolerance for floating point
+        # Check for %5 rise -> full sell (priority over partial sell)
+        if current_price >= (rise_5_pct - 0.01) and current_amount > 0:  # Small tolerance for floating point
             return {
                 "action": "FULL_SELL",
                 "amount": current_amount,
-                "reason": "10% rise - full sell"
+                "reason": "5% rise - full sell"
             }
         
-        # Check for %5 rise -> %50 sell + stop loss
-        if current_price >= (rise_5_pct - 0.01) and position.get('partial_sold', 0) == 0:  # Small tolerance
+        # Check for %2 rise -> %50 sell + stop loss
+        if current_price >= (rise_2_pct - 0.01) and position.get('partial_sold', 0) == 0:  # Small tolerance
             return {
                 "action": "PARTIAL_SELL",
                 "amount": current_amount * 0.5,  # Sell 50%
                 "stop_price": entry_price,
-                "reason": "5% rise - partial sell + stop loss"
+                "reason": "2% rise - partial sell + stop loss"
             }
         
-        # Check for %3 drop -> rebuy (if partially sold)
-        if current_price <= (drop_3_pct + 0.01) and position.get('partial_sold', 0) > 0:  # Small tolerance
+        # Check for %2 drop -> rebuy (if partially sold)
+        if current_price <= (drop_2_pct + 0.01) and position.get('partial_sold', 0) > 0:  # Small tolerance
             return {
                 "action": "REBUY",
                 "amount": position['partial_sold'],  # Rebuy the sold amount
-                "reason": "3% drop - rebuy"
+                "reason": "2% drop - rebuy"
             }
         
         # Check for stop loss trigger
@@ -288,7 +288,7 @@ class RiskManager:
     
     def check_scalping_rebuy_opportunity(self, symbol: str, current_price: float) -> dict:
         """
-        Check for rebuy opportunity after full sell (5% drop from sell price)
+        Check for rebuy opportunity after full sell (2% drop from sell price)
         """
         if symbol not in self.scalping_sell_history:
             return {"action": None}
@@ -296,13 +296,13 @@ class RiskManager:
         sell_data = self.scalping_sell_history[symbol]
         sell_price = sell_data['sell_price']
         
-        # Check for 5% drop from sell price
-        rebuy_price = sell_price * 0.95
+        # Check for 2% drop from sell price
+        rebuy_price = sell_price * 0.98
         if current_price <= (rebuy_price + 0.01):  # Small tolerance for floating point
             return {
                 "action": "REBUY_FROM_SELL",
                 "amount": sell_data['amount_sold'],
-                "reason": "5% drop from sell price - rebuy"
+                "reason": "2% drop from sell price - rebuy"
             }
         
         return {"action": None}
