@@ -50,52 +50,44 @@ def et_time_to_local_hhmm(et_hhmm: str) -> str:
 def get_available_trading_tokens() -> list[str]:
     """
     Get list of available tokens for trading based on:
-    1. Top 50 tokens by market cap
+    1. ALL tokens in TOKEN_MAP (not just top 50)
     2. DexScreener eligibility (volume, liquidity, FDV)
     3. Competition compliance
     """
     try:
-        # Load top 50 tokens
-        with open("top_50_tokens.json", "r") as f:
-            top_tokens = json.load(f)
-        
         available_tokens = []
         
-        # Check each token for eligibility
-        for symbol, token_info in top_tokens.items():
-            # Skip if not in our TOKEN_MAP (no contract address)
-            if symbol not in TOKEN_MAP:
-                continue
+        # Check ALL tokens in TOKEN_MAP for eligibility
+        for symbol, token_address in TOKEN_MAP.items():
+            try:
+                # Check DexScreener eligibility
+                stats = _dexscreener_token_stats(token_address)
                 
-            # Get token address for DexScreener check
-            token_address = TOKEN_MAP[symbol]
-            
-            # Check DexScreener eligibility
-            stats = _dexscreener_token_stats(token_address)
-            
-            # Apply competition constraints
-            constraints = get_competition_constraints()
-            
-            if (stats.get("volumeUsd24h", 0) >= constraints["min_24h_vol_usd"] and
-                stats.get("liquidityUsd", 0) >= constraints["min_liquidity_usd"] and
-                stats.get("fdvUsd", 0) >= constraints["min_fdv_usd"]):
+                # Apply competition constraints
+                constraints = get_competition_constraints()
                 
-                available_tokens.append(symbol)
-                print(f"✅ {symbol}: Eligible for trading")
-            else:
-                print(f"❌ {symbol}: Not eligible (vol: {stats.get('volumeUsd24h', 0):.0f}, liq: {stats.get('liquidityUsd', 0):.0f}, fdv: {stats.get('fdvUsd', 0):.0f})")
-        
-        # Always include core tokens even if not in top 50
-        core_tokens = ["USDC", "USDT", "WETH", "WBTC", "BTC", "ETH"]
-        for token in core_tokens:
-            if token not in available_tokens and token in TOKEN_MAP:
-                available_tokens.append(token)
+                if (stats.get("volumeUsd24h", 0) >= constraints["min_24h_vol_usd"] and
+                    stats.get("liquidityUsd", 0) >= constraints["min_liquidity_usd"] and
+                    stats.get("fdvUsd", 0) >= constraints["min_fdv_usd"]):
+                    
+                    available_tokens.append(symbol)
+                    print(f"✅ {symbol}: Eligible for trading")
+                else:
+                    print(f"❌ {symbol}: Not eligible (vol: {stats.get('volumeUsd24h', 0):.0f}, liq: {stats.get('liquidityUsd', 0):.0f}, fdv: {stats.get('fdvUsd', 0):.0f})")
+                    
+            except Exception as e:
+                print(f"⚠️ Error checking {symbol}: {e}")
+                # For core tokens, include them even if DexScreener fails
+                core_tokens = ["USDC", "USDT", "WETH", "WBTC", "BTC", "ETH", "SOL"]
+                if symbol in core_tokens:
+                    available_tokens.append(symbol)
+                    print(f"✅ {symbol}: Added as core token (DexScreener error)")
         
         print(f"🎯 Total available tokens: {len(available_tokens)}")
         return available_tokens
         
     except Exception as e:
-        print(f"⚠️ Error loading top tokens, using fallback: {e}")
+        print(f"⚠️ Error in token eligibility check, using fallback: {e}")
         # Fallback to core tokens
         return ["USDC", "USDT", "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "AVAX", "DOGE", "DOT", "MATIC", "LINK", "UNI", "LTC", "BCH", "XLM", "ETC", "VET"]
 
