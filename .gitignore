@@ -1,17 +1,17 @@
-# Environment variables and secrets
+# Environment variables
 .env
 config.env
-*.env
-.env.local
-.env.production
-.env.sandbox
-.envAdd-Content
-.env*
 
-# API keys and secrets
-secrets.json
-api_keys.json
-credentials.json
+# API Keys and sensitive data
+*.key
+*.secret
+*_api_key*
+*_secret*
+
+# Logs
+logs/
+*.log
+*.jsonl
 
 # Python
 __pycache__/
@@ -34,58 +34,27 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
 # Virtual environments
 venv/
 env/
 ENV/
-env.bak/
-venv.bak/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Logs
-*.log
-logs/
-log/
+# Competition data
+daily_trades.json
+competition_rules.json
+portfolio_analysis_report.json
 
 # Temporary files
 *.tmp
 *.temp
-temp/
-tmp/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Backup files
-*.bak
-*.backup
-*.old
-
-# Position tracking
-positions.json
-trades.json
-portfolio_history.json
-
-# Test files with real data
-test_*.py
-*_test.py
-test_data.json
