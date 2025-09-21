@@ -48,6 +48,27 @@ class ManualOrderSystem:
         logger.info("📡 Recall API odaklı sistem aktif")
         logger.info("💰 Token fiyat takip sistemi aktif")
         logger.info("🏆 Yarışma kuralları yöneticisi aktif")
+        
+        # Sistem durumu raporu
+        self.system_start_time = datetime.now()
+        logger.info(f"⏰ Sistem başlatma zamanı: {self.system_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    def get_system_uptime(self) -> str:
+        """Sistem çalışma süresini döndür"""
+        uptime = datetime.now() - self.system_start_time
+        hours, remainder = divmod(int(uptime.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    
+    def get_system_status(self) -> Dict[str, Any]:
+        """Sistem durumu raporu"""
+        return {
+            "start_time": self.system_start_time.strftime('%Y-%m-%d %H:%M:%S'),
+            "uptime": self.get_system_uptime(),
+            "active_orders": len(self.active_orders),
+            "total_orders": self.order_counter,
+            "api_health": self.check_api_health()
+        }
     
     def check_api_health(self) -> bool:
         """API sağlık kontrolü"""
@@ -551,6 +572,15 @@ if __name__ == "__main__":
     print(f"Mevcut İşlemler: {daily_check['current_trades']}")
     print(f"Minimum Gereksinim: {daily_check['min_required']}")
     print(f"Durum: {daily_check['status']}")
+    
+    # Sistem durumu
+    print("\n🖥️ Sistem Durumu:")
+    system_status = agent.get_system_status()
+    print(f"Başlatma Zamanı: {system_status['start_time']}")
+    print(f"Çalışma Süresi: {system_status['uptime']}")
+    print(f"Aktif Emirler: {system_status['active_orders']}")
+    print(f"Toplam Emirler: {system_status['total_orders']}")
+    print(f"API Durumu: {'✅ Sağlıklı' if system_status['api_health'] else '❌ Sorunlu'}")
     
     # Aktif emirler
     print("\n📋 Aktif Emirler:")
